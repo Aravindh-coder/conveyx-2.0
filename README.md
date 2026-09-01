@@ -1,134 +1,224 @@
-# CONVEY X 🚀
-### Enterprise Intelligent Conveyor Belt Joint Rupture & Damage Monitoring System
+<div align="center">
+
+# ⚙️ CONVEY X
+
+### Intelligent Conveyor Belt Joint Rupture & Damage Monitoring System
+
+**Production-grade IoT + AI safety platform for iron ore mining operations.**  
+Real-time multi-sensor fusion · Predictive risk scoring · Hardware-honest SCADA UI
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Socket.io](https://img.shields.io/badge/Socket.IO-4-010101?logo=socket.io)](https://socket.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+</div>
 
 ---
 
-## 📌 Executive Summary & Architecture Overview
+## 🎯 Problem Statement
 
-**CONVEY X** is a high-grade industrial SCADA monitoring & predictive safety platform engineered for iron ore mining conveyor systems. Built for heavy-duty industrial beneficiation plants, CONVEY X bridges physical microcontrollers (**Arduino UNO R3** + **ESP32 Wi-Fi Gateway**) with a modern web application featuring real-time WebSockets, an explainable **Multi-Sensor Fusion Risk Engine**, and an interactive **2D Digital Twin**.
+**SIH 2026 — Problem ID: SIH26008**  
+> *"Intelligent Monitoring and Prediction of Conveyor Belt Joint Rupture and Damages in Iron Ore Mining Industry"*
 
-### Hardware & Sensor Mapping Truth Table
-| Hardware Module | Sensor Model | Primary Physical Semantics | Secondary Metric |
-| :--- | :--- | :--- | :--- |
-| **Drive Bearing Vibration** | MPU6050 Accelerometer / Gyro | 3-Axis Vibration Magnitude (g) | RMS Noise Spectrum |
-| **Motor Electrical Load** | ACS712 20A Current Sensor | Motor Amperes (A) vs Baseline | Mechanical Jam / Stall Detection |
-| **Belt Tracking Guide** | 2x Optical IR Reflectors | Physical Belt Wander Left/Right | Tracking Misalignment |
-| **Local Interlock Relay** | 5V Relay Module (Pin D8) | Normally-Closed Hardware Cutoff | Local Autonomous E-Stop |
-| **Optical Surface Inspection** | HD Camera (Extensible Module) | Visible Surface Tears & Cracks | Vulcanized Splice Rupture Scan |
-
-> ⚠️ **Hardware Safety Autonomy**: Local safety logic runs autonomously on the Arduino UNO. If Wi-Fi or backend connection drops out, the local relay module maintains independent capability to cut 5V DC motor power if physical limits are breached.
+Conveyor belt failures in iron ore beneficiation plants cause millions in downtime. CONVEY X provides continuous sensor-based monitoring with predictive risk scoring to prevent joint ruptures, misalignment, and mechanical failures before they occur.
 
 ---
 
-## 🛠️ Technology Stack
+## 🏗️ System Architecture
 
-* **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Recharts, Lucide Icons, Socket.IO-Client
-* **Backend**: Node.js, Express, TypeScript, Socket.IO Server, JWT Auth
-* **Realtime Telemetry Engine**: Socket.IO WebSockets & HTTP REST API Gateway
-* **Testing Suite**: Telemetry Simulation & Anomaly Testing Controller (Normal, Misalignment, High Vibration, Motor Overload, Multi-Sensor Anomaly, Critical Trip)
+```
+┌─────────────────────────────────────────────────────────┐
+│                  CONVEY X Platform                      │
+├──────────────────┬──────────────────────────────────────┤
+│   Hardware Layer │   Software Platform                  │
+│                  │                                      │
+│  MPU6050 ────────┤──► Arduino UNO ──► UART             │
+│  ACS712  ────────┤       │                             │
+│  IR Left ────────┤       ▼                             │
+│  IR Right ───────┤  ESP32 Wi-Fi ──► POST /api/device-data
+│  Relay ──────────┤                     │               │
+│  5V Motor ───────┤            Node.js Backend          │
+│                  │            WebSocket Server          │
+│                  │                 │                   │
+│                  │          React Frontend              │
+│                  │          SCADA Dashboard             │
+└──────────────────┴──────────────────────────────────────┘
+```
 
 ---
 
-## 📂 Project Folder Structure
+## 🔧 Hardware Components
+
+| Component | Role | Interface |
+|-----------|------|-----------|
+| **Arduino UNO R3** | Local safety controller + analog reading | UART (115200 baud) |
+| **ESP32 Wi-Fi** | JSON packet relay to web platform | Wi-Fi → HTTP/WS |
+| **MPU6050** | 3-axis accelerometer — vibration RMS | I2C (0x68) |
+| **ACS712 (20A)** | DC/AC motor current — jam/stall detection | Analog A0 |
+| **IR Sensor (Left)** | Belt left-edge drift detection | Digital D2 |
+| **IR Sensor (Right)** | Belt right-edge drift detection | Digital D3 |
+| **Relay Module** | Normally-closed safety interlock | Digital D4 |
+| **5V DC Motor** | Drive pulley + belt prototype | PWM |
+
+---
+
+## 🧠 Risk Engine
+
+Multi-sensor fusion scoring model (0–100 risk score):
+
+| Contributor | Max Points | Trigger Condition |
+|------------|-----------|-------------------|
+| Vibration (MPU6050) | 35 pts | RMS > 2.8g = WARNING; > 4.0g = CRITICAL |
+| Motor Current (ACS712) | 35 pts | > 150% baseline = OVERLOAD; > 200% = STALL |
+| Belt Alignment (IR) | 25 pts | Left or Right sensor triggered |
+| Vision (Camera AI) | 20 pts | Future module — crack/splice detection |
+
+**Risk Levels:** `NORMAL` → `WARNING` → `HIGH_RISK` → `CRITICAL`
+
+---
+
+## 🖥️ Platform Features
+
+- **Real-time SVG Digital Twin** — Live conveyor visualizer with sensor node overlays
+- **Hardware-honest Status** — Shows DISCONNECTED until real data arrives; no fake data
+- **6-Scenario Test Bench** — Simulate Normal / Misalignment / High Vibration / Motor Overload / Stall / Joint Rupture
+- **Predictive Maintenance** — Risk score, failure probability, recommended action
+- **Alert Engine** — Severity-classified alerts with acknowledge/resolve
+- **Maintenance Scheduler** — Track upcoming service intervals
+- **Event Log** — Full timestamped sensor event history
+- **Live Charts** — Real-time telemetry sparklines (Recharts)
+- **Device Registry** — All hardware nodes with connectivity status
+
+---
+
+## 📡 Hardware Integration (ESP32 Firmware)
+
+Send JSON packets to the backend every 500ms:
+
+```http
+POST http://<server-ip>:4000/api/device-data
+Content-Type: application/json
+
+{
+  "deviceId": "ESP32-001",
+  "timestamp": 1725123456789,
+  "vibration": { "x": 0.12, "y": 0.08, "z": 9.81 },
+  "motor": { "current": 1.45, "rpm": 1420 },
+  "alignment": { "leftSensor": false, "rightSensor": false },
+  "relay": { "tripped": false }
+}
+```
+
+The backend automatically transitions from `DISCONNECTED → LIVE_HARDWARE` on first packet.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+
+- npm 9+
+
+### 1. Install Dependencies
+
+```bash
+# Backend
+cd backend && npm install
+
+# Frontend
+cd frontend && npm install
+```
+
+### 2. Start Backend
+
+```bash
+cd backend
+npm run dev          # Development (ts-node)
+# OR
+npm run build && npm start   # Production
+```
+Backend runs on **port 4000**
+
+### 3. Start Frontend
+
+```bash
+cd frontend
+npm run dev          # Vite dev server
+```
+Frontend runs on **port 3000** (or 5173)
+
+### 4. Login Credentials
+
+| Role | Username | Password |
+|------|----------|----------|
+| Supervisor | `admin` | `conveyX@2026` |
+| Engineer | `engineer` | `engineer123` |
+| Viewer | `viewer` | `viewer123` |
+
+---
+
+## 📁 Project Structure
 
 ```
 conveyX/
-├── shared/
-│   └── types.ts                    # Shared TypeScript interfaces
-├── backend/
-│   ├── package.json
-│   ├── tsconfig.json
+├── backend/                    # Node.js + Express + TypeScript
 │   └── src/
-│       ├── index.ts                # Express HTTP & WebSocket server
-│       ├── config.ts               # Environment variables
-│       ├── models/db.ts            # Persistent in-memory data store
-│       ├── routes/api.routes.ts    # REST endpoints (auth, sensors, risk, motor, demo)
-│       └── services/               # Risk Engine, Alert Engine, Simulation & WebSockets
-├── frontend/
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── tailwind.config.js
-│   ├── index.html
+│       ├── index.ts            # Server entrypoint
+│       ├── config.ts           # Environment config
+│       ├── models/db.ts        # In-memory state store
+│       ├── routes/api.routes.ts
+│       └── services/
+│           ├── websocket.service.ts    # Socket.IO + hardware watchdog
+│           ├── riskEngine.service.ts   # Multi-sensor fusion scoring
+│           ├── alertEngine.service.ts  # Alert lifecycle management
+│           └── demoSimulator.service.ts # 6-scenario test bench
+│
+├── frontend/                   # React 18 + Vite + Tailwind
 │   └── src/
-│       ├── index.css               # Dark SCADA design system
-│       ├── App.tsx                 # 21 interactive routes definition
-│       ├── context/                # AuthContext & TelemetryContext
-│       ├── components/             # Digital Twin, KPI Cards, Pipeline, Vision, Charts
-│       └── pages/                  # Landing, Login, Dashboard, Live Monitoring, SihJudgeDemo...
-└── README.md
+│       ├── context/
+│       │   ├── TelemetryContext.tsx    # WebSocket client + state
+│       │   └── AuthContext.tsx
+│       ├── pages/              # 15+ route pages
+│       ├── components/
+│       │   ├── digital-twin/   # ConveyorGraphic SVG, ControlPanel
+│       │   ├── charts/         # RiskScoreGauge, TelemetryLineChart
+│       │   ├── common/         # KPIBox, StatusBadge, PipelineVisualizer
+│       │   └── layout/         # Header, Sidebar, Layout
+│       └── index.css           # SCADA design system tokens
+│
+└── shared/types.ts             # Shared TypeScript interfaces
 ```
 
 ---
 
-## ⚙️ Installation & Running Locally
+## 🔌 API Reference
 
-### Prerequisites
-* **Node.js**: v18.0.0 or higher
-* **npm**: v9.0.0 or higher
-
-### 1. Install Backend & Frontend Dependencies
-
-```bash
-# Navigate to backend and install
-cd backend
-npm install
-
-# Navigate to frontend and install
-cd ../frontend
-npm install
-```
-
-### 2. Launch the Platform in Development Mode
-
-Run the Express Backend API & Telemetry Server (Port 4000):
-```bash
-cd backend
-npm run start
-```
-
-In a second terminal, launch the Vite React Frontend (Port 3000):
-```bash
-cd frontend
-npm run dev
-```
-
-Open your browser at `http://localhost:3000` or navigate directly to `http://localhost:3000/demo` for the **Scenario Test Bench**.
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/device-data` | POST | Receive hardware packet from ESP32 |
+| `/api/hardware/status` | GET | Hardware connectivity + device list |
+| `/api/hardware/simulate` | POST | Activate simulation mode |
+| `/api/hardware/deactivate` | POST | Stop simulation |
+| `/api/alerts` | GET | All alerts |
+| `/api/alerts/:id/acknowledge` | POST | Acknowledge alert |
+| `/api/conveyor/command` | POST | Motor start/stop/emergency |
+| `/api/history` | GET | Telemetry history (last 200 pts) |
+| `/api/maintenance` | GET/POST | Maintenance schedule |
+| `/api/events` | GET | Event log |
 
 ---
 
-## 📡 ESP32 Data Format (JSON Payload over HTTP/MQTT)
+## 🏅 Built For
 
-The Express backend accepts live telemetry packets from the ESP32 gateway at `POST /api/device-data`:
-
-```json
-{
-  "deviceId": "ESP32-001",
-  "conveyorId": "CONV-01",
-  "timestamp": "2026-09-01T08:54:57.000Z",
-  "vibration": {
-    "x": 0.15,
-    "y": 0.20,
-    "z": 1.08,
-    "rms": 1.27,
-    "baselineRms": 1.10
-  },
-  "motor": {
-    "current": 0.84,
-    "baselineCurrent": 0.82,
-    "peakCurrent": 1.05,
-    "isOverload": false,
-    "isStall": false
-  },
-  "alignment": {
-    "leftSensorActive": false,
-    "rightSensorActive": false,
-    "status": "ALIGNED"
-  },
-  "motorState": "RUNNING"
-}
-```
+> **Smart India Hackathon 2026**  
+> Ministry / Organization: Ministry of Mines  
+> Problem Category: Hardware  
+> Team: CONVEY X
 
 ---
 
 ## 📄 License
-Enterprise Intelligent Conveyor Health & Safety Platform.
+
+MIT © 2026 CONVEY X Team
