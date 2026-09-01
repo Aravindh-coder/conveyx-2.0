@@ -1,0 +1,260 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
+import {
+  SensorDataPacket,
+  RiskEvaluation,
+  ConveyorSystem,
+  AlertItem,
+  EventItem,
+  DemoScenario,
+  DeviceInfo,
+  VisionInspection,
+  HardwareMode
+} from '@shared/types';
+
+interface TelemetryContextType {
+  packet: SensorDataPacket | null;
+  risk: RiskEvaluation | null;
+  conveyor: ConveyorSystem;
+  alerts: AlertItem[];
+  events: EventItem[];
+  devices: DeviceInfo[];
+  history: SensorDataPacket[];
+  latestVision?: VisionInspection;
+  currentScenario: DemoScenario;
+  isSocketConnected: boolean;      // WebSocket server reachable
+  hardwareMode: HardwareMode;      // DISCONNECTED | SIMULATION | LIVE_HARDWARE
+  isHardwareConnected: boolean;    // true only for LIVE_HARDWARE
+  localSafetyActive: boolean;
+  setScenario: (scenario: DemoScenario) => void;
+  sendMotorCommand: (action: 'START' | 'STOP' | 'EMERGENCY_STOP') => void;
+  acknowledgeAlert: (id: string) => void;
+  triggerVisionScan: (condition?: string, severity?: string) => Promise<void>;
+  enableSimulation: () => void;
+  disableSimulation: () => void;
+}
+
+/** A completely idle conveyor – no telemetry */
+const disconnectedConveyor: ConveyorSystem = {
+  id: 'CONV-01',
+  name: 'Main Shaft Iron Ore Conveyor',
+  location: 'Primary Crusher Feed Line – Shaft 4',
+  status: 'STOPPED',
+  healthPercent: 0,
+  riskScore: 0,
+  riskLevel: 'NORMAL',
+  beltSpeedMps: 0,
+  motorCurrentA: 0,
+  vibrationRmsG: 0,
+  alignmentStatus: 'ALIGNED',
+  activeAlertsCount: 0,
+  uptimePercent: 0,
+  lastInspectionDate: new Date(Date.now() - 86400000 * 2).toISOString()
+};
+
+const TelemetryContext = createContext<TelemetryContextType | undefined>(undefined);
+
+export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [packet, setPacket] = useState<SensorDataPacket | null>(null);
+  const [risk, setRisk] = useState<RiskEvaluation | null>(null);
+  const [conveyor, setConveyor] = useState<ConveyorSystem>(disconnectedConveyor);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [devices, setDevices] = useState<DeviceInfo[]>([]);
+  const [history, setHistory] = useState<SensorDataPacket[]>([]);
+  const [latestVision, setLatestVision] = useState<VisionInspection | undefined>(undefined);
+  const [currentScenario, setCurrentScenario] = useState<DemoScenario>('NORMAL');
+
+  // Honest connection state
+  const [isSocketConnected, setIsSocketConnected] = useState<boolean>(false);
+  const [hardwareMode, setHardwareMode] = useState<HardwareMode>('DISCONNECTED');
+  const [isHardwareConnected, setIsHardwareConnected] = useState<boolean>(false);
+  const [localSafetyActive, setLocalSafetyActive] = useState<boolean>(true);
+
+  const [socket, setSocket] = useState<Socket | null>(null);
+
+  useEffect(() => {
+    const s = io({
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1500
+    });
+
+    s.on('connect', () => {
+      setIsSocketConnected(true);
+    });
+
+    s.on('disconnect', () => {
+      setIsSocketConnected(false);
+      setHardwareMode('DISCONNECTED');
+      setIsHardwareConnected(false);
+    });
+
+    // Full snapshot on first connect
+    s.on('telemetry_init', (data) => {
+      if (data.packet) setPacket(data.packet);
+      if (data.risk) setRisk(data.risk);
+      if (data.conveyor) setConveyor(data.conveyor);
+      if (data.currentScenario) setCurrentScenario(data.currentScenario);
+      if (data.devices) setDevices(data.devices);
+      if (data.localSafetyActive !== undefined) setLocalSafetyActive(data.localSafetyActive);
+      if (data.hardwareMode) setHardwareMode(data.hardwareMode);
+      setIsHardwareConnected(!!data.isHardwareConnected);
+    });
+
+    // Real-time telemetry tick
+    s.on('telemetry_tick', (data) => {
+      if (data.packet) {
+        setPacket(data.packet);
+        setHistory(prev => [...prev.slice(-49), data.packet]);
+      }
+      if (data.risk) setRisk(data.risk);
+      if (data.conveyor) setConveyor(data.conveyor);
+      if (data.newAlerts && data.newAlerts.length > 0) {
+        setAlerts(prev => [...data.newAlerts, ...prev].slice(0, 50));
+      }
+      if (data.newEvents && data.newEvents.length > 0) {
+        setEvents(prev => [...data.newEvents, ...prev].slice(0, 100));
+      }
+      if (data.hardwareMode) setHardwareMode(data.hardwareMode);
+    });
+
+    // Hardware mode change (connect / disconnect / timeout)
+    s.on('hardware_mode_changed', (data) => {
+      if (data.hardwareMode) setHardwareMode(data.hardwareMode);
+      setIsHardwareConnected(!!data.isHardwareConnected);
+      if (data.devices) setDevices(data.devices);
+      if (data.conveyor) setConveyor(data.conveyor);
+    });
+
+    s.on('scenario_updated', ({ scenario }) => setCurrentScenario(scenario));
+    s.on('conveyor_updated', ({ conveyor }) => setConveyor(conveyor));
+    s.on('alerts_updated', ({ alerts }) => setAlerts(alerts));
+    s.on('vision_updated', ({ inspection }) => setLatestVision(inspection));
+
+    setSocket(s);
+
+    // Hydrate devices from backend
+    fetch('/api/devices')
+      .then(res => res.json())
+      .then(data => { if (data.devices) setDevices(data.devices); })
+      .catch(() => {});
+
+    fetch('/api/alerts')
+      .then(res => res.json())
+      .then(data => { if (data.alerts) setAlerts(data.alerts); })
+      .catch(() => {});
+
+    fetch('/api/events')
+      .then(res => res.json())
+      .then(data => { if (data.events) setEvents(data.events); })
+      .catch(() => {});
+
+    fetch('/api/hardware/status')
+      .then(res => res.json())
+      .then(data => {
+        setHardwareMode(data.hardwareMode);
+        setIsHardwareConnected(!!data.isHardwareConnected);
+        if (data.devices) setDevices(data.devices);
+      })
+      .catch(() => {});
+
+    return () => { s.disconnect(); };
+  }, []);
+
+  const setScenario = useCallback((scenario: DemoScenario) => {
+    setCurrentScenario(scenario);
+    if (socket) socket.emit('set_scenario', scenario);
+    fetch('/api/demo/scenario', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scenario })
+    }).catch(() => {});
+  }, [socket]);
+
+  const sendMotorCommand = useCallback((action: 'START' | 'STOP' | 'EMERGENCY_STOP') => {
+    if (socket) socket.emit('motor_control', { action });
+    const ep = action === 'START' ? '/api/motor/start'
+             : action === 'EMERGENCY_STOP' ? '/api/motor/emergency-stop'
+             : '/api/motor/stop';
+    fetch(ep, { method: 'POST' }).catch(() => {});
+  }, [socket]);
+
+  const acknowledgeAlert = useCallback((id: string) => {
+    setAlerts(prev => prev.map(a => (a.id === id ? { ...a, acknowledged: true, acknowledgedBy: 'Operator' } : a)));
+    fetch(`/api/alerts/${id}/acknowledge`, { method: 'POST' }).catch(() => {});
+  }, []);
+
+  const triggerVisionScan = useCallback(async (condition = 'TEAR', severity = 'HIGH') => {
+    try {
+      const res = await fetch('/api/vision/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ condition, severity })
+      });
+      const data = await res.json();
+      if (data.inspection) setLatestVision(data.inspection);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const enableSimulation = useCallback(() => {
+    fetch('/api/simulation/enable', { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.hardwareMode) setHardwareMode(data.hardwareMode);
+        if (socket) socket.emit('enable_simulation');
+      })
+      .catch(() => {});
+  }, [socket]);
+
+  const disableSimulation = useCallback(() => {
+    fetch('/api/simulation/disable', { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.hardwareMode) {
+          setHardwareMode(data.hardwareMode);
+          setConveyor(disconnectedConveyor);
+          setPacket(null);
+          setRisk(null);
+        }
+        if (socket) socket.emit('disable_simulation');
+      })
+      .catch(() => {});
+  }, [socket]);
+
+  return (
+    <TelemetryContext.Provider
+      value={{
+        packet,
+        risk,
+        conveyor,
+        alerts,
+        events,
+        devices,
+        history,
+        latestVision,
+        currentScenario,
+        isSocketConnected,
+        hardwareMode,
+        isHardwareConnected,
+        localSafetyActive,
+        setScenario,
+        sendMotorCommand,
+        acknowledgeAlert,
+        triggerVisionScan,
+        enableSimulation,
+        disableSimulation
+      }}
+    >
+      {children}
+    </TelemetryContext.Provider>
+  );
+};
+
+export const useTelemetry = () => {
+  const ctx = useContext(TelemetryContext);
+  if (!ctx) throw new Error('useTelemetry must be used within TelemetryProvider');
+  return ctx;
+};

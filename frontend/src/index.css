@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#0B0F17] text-gray-200 antialiased overflow-x-hidden;
+  }
+}
+
+/* Technical Grid Background Pattern */
+.bg-tech-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Glassmorphism Panels */
+.glass-panel {
+  background: rgba(17, 24, 39, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover {
+  transition: all 0.2s ease-in-out;
+}
+.glass-panel-hover:hover {
+  border-color: rgba(6, 182, 212, 0.4);
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+}
+
+/* Status Glowing Badges */
+.glow-green {
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+}
+.glow-yellow {
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
+}
+.glow-orange {
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.5);
+}
+.glow-red {
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0B0F17;
+}
+::-webkit-scrollbar-thumb {
+  background: #1F2937;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* Belt Movement Animation */
+@keyframes beltMove {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -40; }
+}
+
+.animate-belt {
+  stroke-dasharray: 8 8;
+  animation: beltMove 1.2s linear infinite;
+}
