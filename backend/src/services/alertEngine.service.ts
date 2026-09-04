@@ -125,11 +125,11 @@ export function checkAndGenerateAlerts(
     const alert: AlertItem = {
       id: `ALT-EMG-${Date.now().toString().slice(-4)}`,
       timestamp: now,
-      sensorId: 'ARDUINO-001',
+      sensorId: 'ESP32-001',
       conveyorId: packet.conveyorId,
       severity: 'CRITICAL',
       title: 'LOCAL SAFETY RELAY TRIPPED - Emergency Motor Stop Activated',
-      description: 'Multi-sensor risk engine exceeded critical threshold (85+). Local Arduino UNO safety relay opened to prevent belt joint rupture or motor burnout.',
+      description: 'Multi-sensor risk engine exceeded critical threshold (85+). Local ESP32 / Raspberry Pi 3B+ safety interlock opened to prevent belt joint rupture or motor burnout.',
       recommendedAction: 'Perform physical inspection of drive motor, belt splice, and alignment before resetting local relay.',
       acknowledged: false
     };
@@ -143,7 +143,7 @@ export function checkAndGenerateAlerts(
       eventType: 'EMERGENCY_SHUTDOWN',
       severity: 'CRITICAL',
       message: 'Local hardware relay triggered emergency stop.',
-      source: 'Arduino Safety Interlock'
+      source: 'ESP32 / Pi Hardware Interlock'
     };
     newEvents.push(event);
     db.events.unshift(event);

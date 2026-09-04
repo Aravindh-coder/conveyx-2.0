@@ -3,19 +3,20 @@ import { useTelemetry } from '../context/TelemetryContext';
 import { PageHeader } from '../components/layout/PageHeader';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { TelemetryLineChart } from '../components/charts/TelemetryLineChart';
-import { Activity, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { FftSpectrumChart } from '../components/charts/FftSpectrumChart';
+import { Activity, ShieldAlert, CheckCircle2, BarChart2 } from 'lucide-react';
 
 export const SensorVibrationPage: React.FC = () => {
   const { packet, history } = useTelemetry();
   const vibRms = packet?.vibration.rms ?? 0;
-  const vibBaseline = packet?.vibration.baselineRms ?? 0;
+  const vibBaseline = packet?.vibration.baselineRms ?? 1.10;
   const isHigh = vibRms > 2.8;
 
   return (
-    <div className="space-y-6 font-mono">
+    <div className="space-y-6 font-mono select-none">
       <PageHeader
-        title="MPU6050 Accelerometer - Vibration Spectrum Analysis"
-        subtitle="3-Axis Drive Roller Bearing Vibration & Noise RMS Magnitude"
+        title="MPU6050 Accelerometer - Vibration & Spectral Frequency Analysis"
+        subtitle="3-Axis Drive Roller Bearing Vibration Magnitude, RMS Noise & Fast Fourier Transform (FFT)"
         badge={<StatusBadge status={isHigh ? 'WARNING' : 'NORMAL'} size="md" />}
       />
 
@@ -46,12 +47,15 @@ export const SensorVibrationPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Live Chart */}
-      <div className="glass-panel p-5 rounded-xl border border-gray-800">
-        <h3 className="text-xs font-bold text-gray-300 uppercase mb-4">
-          Vibration Spectrum (X, Y, Z Axes & RMS)
+      {/* FFT Frequency Spectrum Chart (Hz vs Amplitude) */}
+      <FftSpectrumChart />
+
+      {/* Live Time Series Chart */}
+      <div className="glass-panel p-5 rounded-xl border border-gray-800 space-y-4">
+        <h3 className="text-xs font-bold text-gray-300 uppercase">
+          Continuous Time-Domain Acceleration (X, Y, Z Axes & RMS Overlay)
         </h3>
-        <TelemetryLineChart data={history} metric="vibration_xyz" height={300} />
+        <TelemetryLineChart data={history} metric="vibration_xyz" height={280} />
       </div>
     </div>
   );

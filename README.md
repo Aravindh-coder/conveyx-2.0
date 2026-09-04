@@ -19,7 +19,7 @@ Real-time multi-sensor fusion · Predictive risk scoring · Hardware-honest SCAD
 
 ## 🎯 Problem Statement
 
-**SIH 2026 — Problem ID: SIH26008**  
+**Enterprise Industrial Safety Challenge**  
 > *"Intelligent Monitoring and Prediction of Conveyor Belt Joint Rupture and Damages in Iron Ore Mining Industry"*
 
 Conveyor belt failures in iron ore beneficiation plants cause millions in downtime. CONVEY X provides continuous sensor-based monitoring with predictive risk scoring to prevent joint ruptures, misalignment, and mechanical failures before they occur.
@@ -34,17 +34,17 @@ Conveyor belt failures in iron ore beneficiation plants cause millions in downti
 ├──────────────────┬──────────────────────────────────────┤
 │   Hardware Layer │   Software Platform                  │
 │                  │                                      │
-│  MPU6050 ────────┤──► Arduino UNO ──► UART             │
-│  ACS712  ────────┤       │                             │
-│  IR Left ────────┤       ▼                             │
-│  IR Right ───────┤  ESP32 Wi-Fi ──► POST /api/device-data
-│  Relay ──────────┤                     │               │
-│  5V Motor ───────┤            Node.js Backend          │
-│                  │            WebSocket Server          │
-│                  │                 │                   │
-│                  │          React Frontend              │
-│                  │          SCADA Dashboard             │
-└──────────────────┴──────────────────────────────────────┘
+│  MPU6050 ────────┤──► ESP32 SmartPod ──► Wi-Fi / MQTT    │
+│  ACS712  ────────┤          │                           │
+│  IR Left ────────┤          ▼                           │
+│  IR Right ───────┤     Raspberry Pi 3B+ ──► POST /api/device-data
+│  Relay ──────────┤     Edge AI Node         │           │
+│  5V Motor ───────┤                 Node.js Backend      │
+│                  │                 WebSocket Server     │
+│                  │                      │               │
+│                  │               React Frontend         │
+│                  │               SCADA Dashboard        │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -53,8 +53,8 @@ Conveyor belt failures in iron ore beneficiation plants cause millions in downti
 
 | Component | Role | Interface |
 |-----------|------|-----------|
-| **Arduino UNO R3** | Local safety controller + analog reading | UART (115200 baud) |
-| **ESP32 Wi-Fi** | JSON packet relay to web platform | Wi-Fi → HTTP/WS |
+| **Raspberry Pi 3B+** | Edge AI gateway + OpenCV camera inference | MQTT / HTTP (Local Server) |
+| **ESP32 Microcontroller** | Telemetry collector & local safety cutoff | Wi-Fi / I2C / Analog |
 | **MPU6050** | 3-axis accelerometer — vibration RMS | I2C (0x68) |
 | **ACS712 (20A)** | DC/AC motor current — jam/stall detection | Analog A0 |
 | **IR Sensor (Left)** | Belt left-edge drift detection | Digital D2 |

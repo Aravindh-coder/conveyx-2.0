@@ -25,7 +25,7 @@ export const SettingsPage: React.FC = () => {
       <div className="p-3 bg-amber-950/40 border border-amber-500/40 rounded-xl text-amber-300 text-xs flex items-center space-x-2">
         <AlertTriangle className="w-4 h-4 flex-shrink-0" />
         <span className="font-bold">ADVANCED USERS ONLY:</span>
-        <span>Mutating these thresholds alters local Arduino hardware relay interrupt triggers.</span>
+        <span>Mutating these thresholds alters local ESP32 & Raspberry Pi 3B+ hardware relay interrupt triggers.</span>
       </div>
 
       <form onSubmit={handleSave} className="glass-panel p-6 rounded-xl border border-gray-800 space-y-6">

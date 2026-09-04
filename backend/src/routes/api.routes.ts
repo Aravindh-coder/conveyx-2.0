@@ -265,14 +265,96 @@ router.post('/demo/scenario', (req, res) => {
   }
 
   db.currentScenario = scenario;
-  if (scenario === 'NORMAL' && db.hardwareMode === 'SIMULATION') {
+  const io = getIO();
+
+  if (scenario === 'NORMAL' || scenario === 'RECOVERY') {
     db.conveyor.status = 'RUNNING';
+    db.conveyor.healthPercent = 94;
+    db.conveyor.riskScore = 12;
+    db.conveyor.riskLevel = 'NORMAL';
+
+    if (scenario === 'RECOVERY') {
+      // Mark open incidents as RESOLVED
+      db.incidents.forEach(inc => {
+        if (inc.status === 'DETECTED' || inc.status === 'INVESTIGATING' || inc.status === 'ACKNOWLEDGED') {
+          inc.status = 'RESOLVED';
+          inc.resolutionNotes = 'System recovered to NORMAL state following maintenance inspection.';
+        }
+      });
+      db.events.unshift({
+        id: `EVT-${Date.now().toString().slice(-4)}`,
+        timestamp: new Date().toISOString(),
+        conveyorId: db.conveyor.id,
+        eventType: 'SYSTEM_RECOVERY',
+        severity: 'INFO',
+        message: 'System recovered to NORMAL operational parameters. Motor restarted.',
+        source: 'Control Room'
+      });
+    }
+  } else if (scenario === 'CRITICAL_FAULT' || scenario === 'CRITICAL_FAILURE') {
+    db.conveyor.status = 'EMERGENCY_STOP';
+    db.conveyor.healthPercent = 18;
+    db.conveyor.riskScore = 94;
+    db.conveyor.riskLevel = 'CRITICAL';
+
+    const incId = `INC-2026-${String(db.incidents.length + 1).padStart(4, '0')}`;
+    const newInc: any = {
+      id: incId,
+      conveyorId: db.conveyor.id,
+      siteName: db.company.siteName || 'Plant A – Primary Crusher',
+      timestamp: new Date().toISOString(),
+      severity: 'CRITICAL',
+      condition: 'Abnormal vibration (4.65g) + elevated current (3.60A)',
+      healthPercentAtDetection: 18,
+      riskScoreAtDetection: 94,
+      status: 'DETECTED',
+      autoShutdownTriggered: true,
+      sosStatus: 'SENT',
+      assignedTechnician: 'Tech Lead Rajesh K.',
+      resolutionNotes: 'Awaiting inspection before motor restart.',
+      downtimeMinutes: 12
+    };
+    db.incidents.unshift(newInc);
+
+    const newSos: any = {
+      id: `SOS-2026-${String(db.sosMessages.length + 1).padStart(4, '0')}`,
+      timestamp: new Date().toISOString(),
+      companyName: db.company.companyName,
+      siteName: db.company.siteName,
+      conveyorId: db.conveyor.id,
+      status: 'CRITICAL',
+      detectedCondition: 'Abnormal vibration + elevated current',
+      riskScore: 94,
+      actionTaken: 'Conveyor automatically stopped via Interlock Relay',
+      incidentId: incId,
+      deliveryState: 'SENT',
+      recipientMobile: db.company.emergencyContactMobile,
+      recipientName: db.company.emergencyContactName,
+      simulated: true
+    };
+    db.sosMessages.unshift(newSos);
+
+    db.events.unshift({
+      id: `EVT-${Date.now().toString().slice(-4)}`,
+      timestamp: new Date().toISOString(),
+      conveyorId: db.conveyor.id,
+      eventType: 'AUTOMATIC_SHUTDOWN',
+      severity: 'CRITICAL',
+      message: 'AUTOMATIC MOTOR SHUTDOWN: Interlock relay tripped due to critical vibration (4.65g) & current overload (3.60A).',
+      source: 'Local Interlock Safety Controller'
+    });
   }
 
-  const io = getIO();
   io?.emit('scenario_updated', { scenario: db.currentScenario });
+  io?.emit('conveyor_updated', { conveyor: db.conveyor });
 
-  return res.json({ success: true, currentScenario: db.currentScenario });
+  return res.json({
+    success: true,
+    currentScenario: db.currentScenario,
+    conveyor: db.conveyor,
+    incidents: db.incidents,
+    sosMessages: db.sosMessages
+  });
 });
 
 // Enable simulation mode (browser-controlled – shows clear SIMULATION badge)
@@ -302,16 +384,153 @@ router.post('/simulation/disable', (_req, res) => {
   return res.json({ success: true, hardwareMode: db.hardwareMode });
 });
 
-// Hardware status summary endpoint
-router.get('/hardware/status', (_req, res) => {
+// ==================================================
+// INCIDENTS API
+// ==================================================
+router.get('/incidents', (_req, res) => {
+  return res.json({ incidents: db.incidents });
+});
+
+router.post('/incidents/:id/status', (req, res) => {
+  const { status, resolutionNotes, technician } = req.body;
+  const inc = db.incidents.find(i => i.id === req.params.id);
+  if (!inc) {
+    return res.status(404).json({ error: 'Incident not found' });
+  }
+  if (status) inc.status = status;
+  if (resolutionNotes) inc.resolutionNotes = resolutionNotes;
+  if (technician) inc.assignedTechnician = technician;
+
+  const io = getIO();
+  io?.emit('incidents_updated', { incidents: db.incidents });
+
+  return res.json({ success: true, incident: inc });
+});
+
+// ==================================================
+// SOS CENTER API
+// ==================================================
+router.get('/sos', (_req, res) => {
   return res.json({
-    hardwareMode: db.hardwareMode,
-    isHardwareConnected: db.isHardwareConnected,
-    lastPacketAgo: db.lastHardwarePacketAt
-      ? Math.round((Date.now() - db.lastHardwarePacketAt) / 1000) + 's ago'
-      : 'Never',
-    devices: db.devices,
-    localSafetyActive: db.localSafetyActive
+    sosMessages: db.sosMessages,
+    adminContact: {
+      name: db.company.adminName,
+      mobile: db.company.adminMobile,
+      email: db.company.adminEmail
+    },
+    emergencyContact: {
+      name: db.company.emergencyContactName,
+      mobile: db.company.emergencyContactMobile
+    }
+  });
+});
+
+router.post('/sos/trigger', (req, res) => {
+  const { condition = 'MANUAL SOS TRIGGER', severity = 'CRITICAL' } = req.body;
+  const sosId = `SOS-2026-${String(db.sosMessages.length + 1).padStart(4, '0')}`;
+  const incId = `INC-2026-${String(db.incidents.length + 1).padStart(4, '0')}`;
+
+  const newSos: any = {
+    id: sosId,
+    timestamp: new Date().toISOString(),
+    companyName: db.company.companyName,
+    siteName: db.company.siteName,
+    conveyorId: db.conveyor.id,
+    status: severity,
+    detectedCondition: condition,
+    riskScore: db.conveyor.riskScore || 94,
+    actionTaken: 'Operator Triggered Emergency SOS Alarm',
+    incidentId: incId,
+    deliveryState: 'SENT',
+    recipientMobile: db.company.emergencyContactMobile,
+    recipientName: db.company.emergencyContactName,
+    simulated: true
+  };
+  db.sosMessages.unshift(newSos);
+
+  const newInc: any = {
+    id: incId,
+    conveyorId: db.conveyor.id,
+    siteName: db.company.siteName,
+    timestamp: new Date().toISOString(),
+    severity: 'CRITICAL',
+    condition: condition,
+    healthPercentAtDetection: db.conveyor.healthPercent,
+    riskScoreAtDetection: db.conveyor.riskScore,
+    status: 'DETECTED',
+    autoShutdownTriggered: false,
+    sosStatus: 'SENT',
+    assignedTechnician: db.company.adminName,
+    resolutionNotes: 'Manual SOS alert issued from Control Room dashboard.',
+    downtimeMinutes: 0
+  };
+  db.incidents.unshift(newInc);
+
+  const io = getIO();
+  io?.emit('sos_updated', { sosMessages: db.sosMessages });
+  io?.emit('incidents_updated', { incidents: db.incidents });
+
+  return res.json({ success: true, sosMessage: newSos, incident: newInc });
+});
+
+// ==================================================
+// COMPANY & ONBOARDING API
+// ==================================================
+router.get('/company', (_req, res) => {
+  return res.json({ company: db.company, conveyor: db.conveyor });
+});
+
+router.post('/onboarding', (req, res) => {
+  const data = req.body;
+  if (!data.companyName || !data.siteName) {
+    return res.status(400).json({ error: 'Company Name and Site Name are required' });
+  }
+
+  db.company = {
+    companyName: data.companyName || 'ABC Cement & Mining Corp',
+    industry: data.industry || 'Mining',
+    companyId: `COMP-2026-${Math.floor(10 + Math.random() * 90)}`,
+    siteName: data.siteName || 'Plant A',
+    location: data.location || 'Site Alpha',
+    adminName: data.adminName || 'Admin User',
+    adminMobile: data.adminMobile || '+91 98765 43210',
+    adminEmail: data.adminEmail || 'admin@conveyx.io',
+    designation: data.designation || 'Chief Safety Engineer',
+    emergencyContactName: data.emergencyContactName || 'Emergency Response Team',
+    emergencyContactMobile: data.emergencyContactMobile || '+91 91234 56789',
+    smartPodId: data.smartPodId || 'POD-2026-NODE1'
+  };
+
+  if (data.conveyorName) {
+    db.conveyor.name = data.conveyorName;
+  }
+  if (data.conveyorId) {
+    db.conveyor.id = data.conveyorId;
+  }
+
+  return res.json({ success: true, company: db.company, conveyor: db.conveyor });
+});
+
+// ==================================================
+// REPORTS API
+// ==================================================
+router.get('/reports', (_req, res) => {
+  return res.json({
+    company: db.company,
+    conveyor: db.conveyor,
+    incidents: db.incidents,
+    alerts: db.alerts,
+    events: db.events,
+    maintenance: db.maintenanceRecords,
+    summary: {
+      totalConveyors: 1,
+      healthyCount: db.conveyor.riskScore < 35 ? 1 : 0,
+      warningCount: db.conveyor.riskScore >= 35 && db.conveyor.riskScore < 75 ? 1 : 0,
+      criticalCount: db.conveyor.riskScore >= 75 ? 1 : 0,
+      overallUptime: db.conveyor.uptimePercent || 99.4,
+      totalIncidents: db.incidents.length,
+      unresolvedIncidents: db.incidents.filter(i => i.status !== 'CLOSED' && i.status !== 'RESOLVED').length
+    }
   });
 });
 

@@ -1,170 +1,201 @@
 import React from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { clsx } from 'clsx';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  Activity,
-  Layers,
-  Cpu,
-  Zap,
-  SlidersHorizontal,
-  ShieldCheck,
-  Eye,
-  Bell,
-  Wrench,
-  History,
-  LineChart,
-  HardDrive,
-  Settings,
-  HelpCircle,
-  PlaySquare,
-  ShieldAlert,
-  ChevronRight
+  LayoutDashboard, Activity, Layers, Cpu, Zap, SlidersHorizontal,
+  ShieldCheck, Eye, Bell, Wrench, History, LineChart, HardDrive,
+  Settings, HelpCircle, PlaySquare, ShieldAlert, AlertOctagon,
+  PhoneCall, FileText, Building2, UserCheck, Sparkles, LogOut, ChevronRight
 } from 'lucide-react';
 import { useTelemetry } from '../../context/TelemetryContext';
+import { useAuth } from '../../context/AuthContext';
 
-interface Props {
-  collapsed?: boolean;
+interface NavGroup {
+  label: string;
+  items: { path: string; label: string; icon: React.ElementType; badge?: string; color?: string }[];
 }
 
-export const Sidebar: React.FC<Props> = ({ collapsed = false }) => {
-  const location = useLocation();
-  const { isSocketConnected, hardwareMode, isHardwareConnected, localSafetyActive } = useTelemetry();
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: 'Monitoring',
+    items: [
+      { path: '/dashboard',       label: 'Dashboard',          icon: LayoutDashboard },
+      { path: '/live-monitoring', label: 'Live Telemetry',     icon: Activity },
+      { path: '/conveyor',        label: 'Conveyors',          icon: SlidersHorizontal },
+      { path: '/digital-twin',    label: 'Digital Twin',       icon: Layers },
+      { path: '/demo',            label: 'Scenario Bench',     icon: PlaySquare, badge: 'TEST', color: '#06B6D4' },
+    ]
+  },
+  {
+    label: 'Sensors & AI',
+    items: [
+      { path: '/prediction',       label: 'Predictive Engine', icon: ShieldCheck, color: '#8B5CF6' },
+      { path: '/sensors',          label: 'Sensors Hub',       icon: Cpu,         color: '#10B981' },
+      { path: '/sensors/vibration',label: 'MPU6050 Vibration', icon: Activity,    color: '#10B981' },
+      { path: '/sensors/current',  label: 'ACS712 Motor Load', icon: Zap,         color: '#F59E0B' },
+      { path: '/sensors/alignment',label: 'IR Belt Alignment', icon: SlidersHorizontal, color: '#10B981' },
+      { path: '/vision',           label: 'AI Vision Module',  icon: Eye,         color: '#8B5CF6' },
+    ]
+  },
+  {
+    label: 'Incidents',
+    items: [
+      { path: '/incidents',   label: 'Incidents Log',        icon: AlertOctagon, badge: 'AUTO', color: '#F97316' },
+      { path: '/sos',         label: 'SOS Center',           icon: PhoneCall,    badge: 'GSM',  color: '#F43F5E' },
+      { path: '/alerts',      label: 'Alert Center',         icon: Bell,         color: '#F43F5E' },
+      { path: '/maintenance', label: 'Maintenance',          icon: Wrench,       color: '#F59E0B' },
+      { path: '/events',      label: 'Event History',        icon: History },
+    ]
+  },
+  {
+    label: 'Reports',
+    items: [
+      { path: '/reports',    label: 'Compliance Reports', icon: FileText, badge: 'PDF', color: '#F59E0B' },
+      { path: '/analytics',  label: 'Analytics',          icon: LineChart },
+      { path: '/devices',    label: 'SmartPods',          icon: HardDrive },
+      { path: '/company',    label: 'Company Profile',    icon: Building2 },
+      { path: '/onboarding', label: 'Setup Wizard',       icon: Sparkles, color: '#06B6D4' },
+    ]
+  },
+  {
+    label: 'System',
+    items: [
+      { path: '/settings', label: 'Settings',       icon: Settings },
+      { path: '/profile',  label: 'My Profile',     icon: UserCheck },
+      { path: '/help',     label: 'Documentation',  icon: HelpCircle },
+    ]
+  }
+];
 
-  const menuGroups = [
-    {
-      groupName: 'CONTROL & MONITORING',
-      items: [
-        { path: '/demo', label: 'Scenario Test Bench', icon: PlaySquare, badge: 'TEST BENCH' },
-        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/live-monitoring', label: 'Live Telemetry', icon: Activity },
-        { path: '/digital-twin', label: 'Digital Twin', icon: Layers, badge: '3D/2D' },
-        { path: '/conveyor', label: 'Conveyors', icon: SlidersHorizontal }
-      ]
-    },
-    {
-      groupName: 'SENSORS & PREDICTION',
-      items: [
-        { path: '/sensors', label: 'Sensors Hub', icon: Cpu },
-        { path: '/sensors/vibration', label: 'MPU6050 Vibration', icon: Activity },
-        { path: '/sensors/current', label: 'ACS712 Motor Current', icon: Zap },
-        { path: '/sensors/alignment', label: 'IR Belt Alignment', icon: SlidersHorizontal },
-        { path: '/prediction', label: 'Predictive Risk Engine', icon: ShieldCheck },
-        { path: '/vision', label: 'AI Vision Module', icon: Eye }
-      ]
-    },
-    {
-      groupName: 'OPERATIONS & LOGS',
-      items: [
-        { path: '/alerts', label: 'Alert Center', icon: Bell },
-        { path: '/maintenance', label: 'Maintenance', icon: Wrench },
-        { path: '/events', label: 'Event History', icon: History },
-        { path: '/analytics', label: 'Analytics & Reports', icon: LineChart }
-      ]
-    },
-    {
-      groupName: 'SYSTEM & HELP',
-      items: [
-        { path: '/devices', label: 'Hardware Devices', icon: HardDrive },
-        { path: '/settings', label: 'System Settings', icon: Settings },
-        { path: '/help', label: 'Documentation & Guide', icon: HelpCircle }
-      ]
-    }
-  ];
+export const Sidebar: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { isSocketConnected, hardwareMode } = useTelemetry();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    if (logout) logout();
+    navigate('/');
+  };
+
+  const connectionStatus =
+    hardwareMode === 'LIVE_HARDWARE' ? { label: 'Live Hardware', color: '#10B981' } :
+    hardwareMode === 'SIMULATION'    ? { label: 'Simulation',    color: '#F59E0B' } :
+                                       { label: 'Disconnected',  color: '#475569' };
 
   return (
-    <aside className="w-64 bg-[#0B0F17] border-r border-gray-800 flex flex-col justify-between h-screen sticky top-0 z-40 select-none">
-      <div>
-        {/* Brand Header */}
-        <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-gray-950/60">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.4)]">
-              <ShieldAlert className="w-5 h-5 text-black font-extrabold" />
-            </div>
-            <div>
-              <h1 className="text-base font-extrabold font-mono tracking-wider text-white leading-none">
-                CONVEY <span className="text-cyan-400">X</span>
-              </h1>
-              <span className="text-[10px] font-mono text-gray-400 block mt-0.5">Mining Safety Platform</span>
-            </div>
-          </div>
+    <aside
+      className="w-[220px] flex-shrink-0 flex flex-col h-screen sticky top-0 z-40 select-none overflow-hidden"
+    >
+      {/* ─ Brand ─ */}
+      <div className="px-4 py-4 flex items-center gap-2.5 border-b border-gray-200 dark:border-white/[0.05]">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+          style={{ background: 'linear-gradient(135deg, #06B6D4, #2563EB)', boxShadow: '0 0 15px rgba(6,182,212,0.3)' }}>
+          <ShieldAlert className="w-4 h-4 text-white" strokeWidth={2.5} />
         </div>
-
-        {/* Navigation Menu Links */}
-        <div className="px-3 py-3 overflow-y-auto max-h-[calc(100vh-170px)] space-y-4">
-          {menuGroups.map((group, gIdx) => (
-            <div key={gIdx}>
-              <span className="px-2 text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400 block mb-1.5">
-                {group.groupName}
-              </span>
-              <div className="space-y-0.5">
-                {group.items.map(item => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.path;
-                  return (
-                    <NavLink
-                      key={item.path}
-                      to={item.path}
-                      className={({ isActive }) =>
-                        clsx(
-                          'flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-mono transition-all duration-150 group',
-                          isActive
-                            ? 'bg-cyan-950/60 text-cyan-300 font-bold border border-cyan-500/40 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
-                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-900/60'
-                        )
-                      }
-                    >
-                      <div className="flex items-center space-x-2.5">
-                        <Icon className={clsx('w-4 h-4', isActive ? 'text-cyan-400' : 'text-gray-500 group-hover:text-gray-300')} />
-                        <span>{item.label}</span>
-                      </div>
-
-                      {item.badge ? (
-                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
-                          {item.badge}
-                        </span>
-                      ) : (
-                        isActive && <ChevronRight className="w-3.5 h-3.5 text-cyan-400" />
-                      )}
-                    </NavLink>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+        <div>
+          <div className="text-[14px] font-bold text-gray-900 dark:text-white tracking-wide leading-none"
+            style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            CONVEY<span style={{ color: '#0284C7' }}>X</span>
+            <span className="text-gray-400 dark:text-slate-500 text-[11px] ml-1 font-medium">2.0</span>
+          </div>
+          <div className="text-[9.5px] text-gray-500 dark:text-slate-600 font-medium tracking-widest mt-0.5 uppercase">Condition Monitor</div>
         </div>
       </div>
 
-      {/* Sidebar Footer Hardware Connection Status – honest state */}
-      <div className="p-3 border-t border-gray-800 bg-gray-950/80 font-mono text-[11px] space-y-1.5">
-        <div className="flex justify-between items-center text-gray-400">
-          <span>Platform:</span>
-          <span className={clsx('font-bold flex items-center space-x-1', isSocketConnected ? 'text-emerald-400' : 'text-rose-400')}>
-            {isSocketConnected && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
-            <span>{isSocketConnected ? 'ONLINE' : 'OFFLINE'}</span>
-          </span>
+      {/* ─ Navigation ─ */}
+      <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4">
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label}>
+            <div className="px-2 mb-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400 dark:text-slate-600">
+              {group.label}
+            </div>
+            <div className="space-y-0.5">
+              {group.items.map(({ path, label, icon: Icon, badge, color }) => {
+                const isActive = location.pathname === path || location.pathname.startsWith(path + '/');
+                return (
+                  <NavLink
+                    key={path}
+                    to={path}
+                    className={() =>
+                      `flex items-center justify-between px-2.5 py-[7px] rounded-lg text-[12.5px] font-medium transition-all duration-150 ${
+                        isActive
+                          ? 'text-cyan-700 dark:text-white font-semibold'
+                          : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.03]'
+                      }`
+                    }
+                    style={isActive ? {
+                      background: 'rgba(6,182,212,0.12)',
+                      border: '1px solid rgba(6,182,212,0.3)',
+                    } : { border: '1px solid transparent' }}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <Icon
+                        className="w-3.5 h-3.5 flex-shrink-0"
+                        style={{ color: isActive ? (color || '#22D3EE') : (color ? color + '88' : '#475569') }}
+                        strokeWidth={isActive ? 2.2 : 1.8}
+                      />
+                      <span className="truncate">{label}</span>
+                    </div>
+                    {badge ? (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
+                        style={{
+                          background: 'rgba(6,182,212,0.12)',
+                          border: '1px solid rgba(6,182,212,0.25)',
+                          color: '#22D3EE'
+                        }}>
+                        {badge}
+                      </span>
+                    ) : isActive ? (
+                      <ChevronRight className="w-3 h-3 text-cyan-400/60 flex-shrink-0" />
+                    ) : null}
+                  </NavLink>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+
+      {/* ─ Footer: Status + User ─ */}
+      <div className="px-3 py-3 border-t border-white/[0.05] space-y-3">
+        {/* Connection Status */}
+        <div className="px-2.5 py-2 rounded-lg space-y-1.5" style={{ background: 'rgba(255,255,255,0.03)' }}>
+          <div className="flex items-center justify-between">
+            <span className="text-[10.5px] text-slate-600">Backend</span>
+            <span className="flex items-center gap-1.5 text-[10.5px] font-semibold"
+              style={{ color: isSocketConnected ? '#10B981' : '#F43F5E' }}>
+              <span className="w-1.5 h-1.5 rounded-full"
+                style={{ background: isSocketConnected ? '#10B981' : '#F43F5E' }} />
+              {isSocketConnected ? 'ONLINE' : 'OFFLINE'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10.5px] text-slate-600">SmartPod</span>
+            <span className="text-[10.5px] font-semibold" style={{ color: connectionStatus.color }}>
+              {connectionStatus.label.toUpperCase()}
+            </span>
+          </div>
         </div>
-        <div className="flex justify-between items-center text-gray-400">
-          <span>Arduino UNO:</span>
-          <span className={clsx('font-bold', isHardwareConnected ? 'text-emerald-400' : 'text-gray-500')}>
-            {isHardwareConnected ? 'CONNECTED' : 'DISCONNECTED'}
-          </span>
-        </div>
-        <div className="flex justify-between items-center text-gray-400">
-          <span>ESP32 Wi-Fi:</span>
-          <span className={clsx('font-bold',
-            hardwareMode === 'LIVE_HARDWARE' ? 'text-emerald-400' :
-            hardwareMode === 'SIMULATION' ? 'text-amber-400' : 'text-gray-500'
-          )}>
-            {hardwareMode === 'LIVE_HARDWARE' ? 'CONNECTED' :
-             hardwareMode === 'SIMULATION' ? 'SIMULATED' : 'DISCONNECTED'}
-          </span>
-        </div>
-        <div className="flex justify-between items-center text-gray-400 pt-1 border-t border-gray-800">
-          <span>Safety Relay:</span>
-          <span className={clsx('font-bold', isHardwareConnected ? 'text-cyan-400' : 'text-gray-500')}>
-            {isHardwareConnected ? 'ARMED' : '—'}
-          </span>
+
+        {/* User + Logout */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(6,182,212,0.1)', border: '1px solid rgba(6,182,212,0.2)' }}>
+            <UserCheck className="w-3.5 h-3.5" style={{ color: '#22D3EE' }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[12px] font-semibold text-slate-300 truncate">
+              {user?.name || 'Operator'}
+            </div>
+            <div className="text-[10px] text-slate-600 truncate">
+              {user?.role || 'Engineer'}
+            </div>
+          </div>
+          <button onClick={handleLogout}
+            className="p-1.5 rounded-lg text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+            title="Sign out">
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
     </aside>

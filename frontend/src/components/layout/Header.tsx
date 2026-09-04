@@ -1,103 +1,151 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTelemetry } from '../../context/TelemetryContext';
-import { Bell, User, Wifi, WifiOff, ShieldAlert, Clock, ExternalLink, Cpu } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { clsx } from 'clsx';
+import { useTheme } from '../../context/ThemeContext';
+import { Bell, Wifi, WifiOff, Clock, Cpu, PhoneCall, ChevronRight, Activity, Sun, Moon } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+
+const ROUTE_MAP: Record<string, { label: string; color: string }> = {
+  '/dashboard':        { label: 'Dashboard',          color: '#22D3EE' },
+  '/live-monitoring':  { label: 'Live Telemetry',     color: '#22D3EE' },
+  '/conveyor':         { label: 'Conveyors',           color: '#22D3EE' },
+  '/digital-twin':     { label: 'Digital Twin',        color: '#22D3EE' },
+  '/demo':             { label: 'Scenario Bench',      color: '#22D3EE' },
+  '/prediction':       { label: 'Predictive Engine',   color: '#A78BFA' },
+  '/sensors':          { label: 'Sensors Hub',         color: '#34D399' },
+  '/sensors/vibration':{ label: 'MPU6050 Vibration',  color: '#34D399' },
+  '/sensors/current':  { label: 'ACS712 Motor Load',  color: '#FCD34D' },
+  '/sensors/alignment':{ label: 'IR Belt Alignment',  color: '#34D399' },
+  '/vision':           { label: 'AI Vision',           color: '#A78BFA' },
+  '/incidents':        { label: 'Incidents',           color: '#FB923C' },
+  '/sos':              { label: 'SOS Center',          color: '#FB7185' },
+  '/alerts':           { label: 'Alert Center',        color: '#FB7185' },
+  '/maintenance':      { label: 'Maintenance',         color: '#FCD34D' },
+  '/events':           { label: 'Event History',       color: '#94A3B8' },
+  '/reports':          { label: 'Reports',             color: '#FCD34D' },
+  '/analytics':        { label: 'Analytics',           color: '#94A3B8' },
+  '/devices':          { label: 'SmartPods',           color: '#94A3B8' },
+  '/company':          { label: 'Company Profile',     color: '#94A3B8' },
+  '/onboarding':       { label: 'Setup Wizard',        color: '#22D3EE' },
+  '/settings':         { label: 'Settings',            color: '#94A3B8' },
+  '/profile':          { label: 'My Profile',          color: '#94A3B8' },
+  '/help':             { label: 'Documentation',       color: '#94A3B8' },
+};
 
 export const Header: React.FC = () => {
-  const { user, logout } = useAuth();
-  const { conveyor, isSocketConnected, hardwareMode, isHardwareConnected, alerts } = useTelemetry();
-  const [currentTime, setCurrentTime] = useState<string>('');
+  const { user } = useAuth();
+  const { conveyor, isSocketConnected, hardwareMode, alerts, company } = useTelemetry();
+  const { theme, toggleTheme } = useTheme();
+  const [time, setTime] = useState('');
+  const location = useLocation();
 
   useEffect(() => {
-    const update = () => {
-      setCurrentTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    };
+    const update = () =>
+      setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     update();
-    const timer = setInterval(update, 1000);
-    return () => clearInterval(timer);
+    const t = setInterval(update, 1000);
+    return () => clearInterval(t);
   }, []);
 
-  const unacknowledgedAlerts = alerts.filter(a => !a.acknowledged).length;
+  const unread = alerts.filter(a => !a.acknowledged).length;
+  const route = ROUTE_MAP[location.pathname] || { label: location.pathname.replace('/', '').toUpperCase(), color: '#94A3B8' };
 
-  // What badge to show for hardware/data mode
-  const modeConfig = () => {
-    if (!isSocketConnected) {
-      return { icon: WifiOff, label: 'PLATFORM OFFLINE', color: 'text-rose-400', border: 'border-rose-800', bg: 'bg-rose-950' };
-    }
-    if (hardwareMode === 'LIVE_HARDWARE') {
-      return { icon: Wifi, label: 'HARDWARE: LIVE', color: 'text-emerald-400', border: 'border-emerald-800', bg: 'bg-emerald-950' };
-    }
-    if (hardwareMode === 'SIMULATION') {
-      return { icon: Cpu, label: 'SIMULATION MODE', color: 'text-amber-400', border: 'border-amber-800', bg: 'bg-amber-950' };
-    }
-    return { icon: WifiOff, label: 'NO HARDWARE', color: 'text-gray-400', border: 'border-gray-700', bg: 'bg-gray-900' };
-  };
-
-  const mode = modeConfig();
-  const ModeIcon = mode.icon;
+  const modeBadge = (() => {
+    if (!isSocketConnected)             return { label: 'OFFLINE',    color: '#F43F5E', bg: 'rgba(244,63,94,0.1)',    border: 'rgba(244,63,94,0.25)',  Icon: WifiOff };
+    if (hardwareMode === 'LIVE_HARDWARE') return { label: 'LIVE',      color: '#10B981', bg: 'rgba(16,185,129,0.1)',   border: 'rgba(16,185,129,0.25)', Icon: Wifi, pulse: true };
+    if (hardwareMode === 'SIMULATION')    return { label: 'SIM',       color: '#F59E0B', bg: 'rgba(245,158,11,0.1)',   border: 'rgba(245,158,11,0.25)', Icon: Cpu };
+    return                                       { label: 'NO HW',    color: '#475569', bg: 'rgba(71,85,105,0.1)',    border: 'rgba(71,85,105,0.25)',  Icon: WifiOff };
+  })();
 
   return (
-    <header className="h-14 bg-[#0B0F17]/90 backdrop-blur-md border-b border-gray-800 px-6 flex items-center justify-between sticky top-0 z-30 font-mono select-none">
-      {/* Left: Active Conveyor System Pill */}
-      <div className="flex items-center space-x-4">
-        <div className="flex items-center space-x-2 bg-gray-900 px-3 py-1.5 rounded-lg border border-gray-800 text-xs">
-          <span className="text-gray-400">Conveyor:</span>
-          <span className="text-cyan-400 font-bold">{conveyor.id}</span>
-          <span className="text-gray-500">|</span>
-          <span className="text-gray-300 font-semibold hidden lg:inline">{conveyor.name}</span>
-        </div>
+    <header
+      className="h-[52px] flex items-center justify-between px-5 sticky top-0 z-30 select-none bg-slate-900/90 dark:bg-slate-900/95 border-b border-gray-200 dark:border-white/10 backdrop-blur-xl"
+    >
+      {/* Left: Breadcrumb */}
+      <div className="flex items-center gap-2 text-[12.5px]">
+        <span className="text-slate-600 font-medium hidden sm:inline">ConveyX 2.0</span>
+        <ChevronRight className="w-3.5 h-3.5 text-slate-700 hidden sm:inline" />
+        <span className="font-semibold" style={{ color: route.color }}>
+          {route.label}
+        </span>
 
-        <Link
-          to="/demo"
-          className="hidden md:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-cyan-950 text-cyan-300 border border-cyan-500/40 text-xs font-bold hover:bg-cyan-900 transition-all shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-          <span>SCENARIO TEST BENCH</span>
-        </Link>
+        {/* Site pill */}
+        <div className="hidden lg:flex items-center gap-1.5 ml-2 px-2.5 py-1 rounded-lg text-[11.5px]"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <span className="text-slate-500">{conveyor.id}</span>
+          <span className="text-slate-700">·</span>
+          <span className="text-slate-400">{company?.siteName || 'Plant A'}</span>
+        </div>
       </div>
 
-      {/* Right: Clock, Hardware Mode Badge, Alerts, Profile */}
-      <div className="flex items-center space-x-4 text-xs">
-        {/* Live Clock */}
-        <div className="hidden lg:flex items-center space-x-1.5 text-gray-400">
-          <Clock className="w-3.5 h-3.5 text-cyan-400" />
-          <span>{currentTime}</span>
+      {/* Right: Status + Actions */}
+      <div className="flex items-center gap-2.5">
+        {/* Clock */}
+        <div className="hidden xl:flex items-center gap-1.5 text-[11.5px] text-slate-500 font-mono">
+          <Clock className="w-3.5 h-3.5 text-slate-600" />
+          {time}
         </div>
 
-        {/* Hardware / Data Mode Badge */}
-        <div className={clsx('flex items-center space-x-1.5 px-2.5 py-1 rounded border', mode.bg, mode.border)}>
-          {hardwareMode === 'LIVE_HARDWARE' && (
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          )}
-          <ModeIcon className={clsx('w-3.5 h-3.5', mode.color)} />
-          <span className={clsx('font-bold tracking-wider', mode.color)}>{mode.label}</span>
+        {/* Mode badge */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold"
+          style={{ background: modeBadge.bg, border: `1px solid ${modeBadge.border}`, color: modeBadge.color }}>
+          {(modeBadge as any).pulse && <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: modeBadge.color }} />}
+          <modeBadge.Icon className="w-3.5 h-3.5" />
+          {modeBadge.label}
         </div>
 
-        {/* Alert Notifications */}
-        <Link
-          to="/alerts"
-          className="relative p-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-gray-300 border border-gray-800 transition-all"
+        {/* Theme Toggle Switcher */}
+        <button
+          onClick={toggleTheme}
+          title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Brighter White Theme'}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
+          style={{
+            background: theme === 'light' ? '#E0F2FE' : 'rgba(255,255,255,0.06)',
+            border: theme === 'light' ? '1px solid #7DD3FC' : '1px solid rgba(255,255,255,0.1)',
+            color: theme === 'light' ? '#0369A1' : '#F1F5F9'
+          }}
         >
+          {theme === 'light' ? (
+            <>
+              <Sun className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+              <span className="hidden sm:inline">LIGHT MODE</span>
+            </>
+          ) : (
+            <>
+              <Moon className="w-3.5 h-3.5 text-indigo-400 fill-indigo-400" />
+              <span className="hidden sm:inline">DARK MODE</span>
+            </>
+          )}
+        </button>
+
+        {/* SOS */}
+        <Link to="/sos"
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11.5px] font-bold text-white transition-all hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg, #E11D48, #9F1239)', boxShadow: '0 2px 12px rgba(225,29,72,0.3)' }}>
+          <PhoneCall className="w-3.5 h-3.5" />
+          <span>SOS</span>
+        </Link>
+
+        {/* Alerts bell */}
+        <Link to="/alerts"
+          className="relative p-2 rounded-lg text-slate-500 hover:text-slate-300 transition-all"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <Bell className="w-4 h-4" />
-          {unacknowledgedAlerts > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-black text-[9px] font-extrabold flex items-center justify-center animate-pulse">
-              {unacknowledgedAlerts}
+          {unread > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black text-white animate-pulse"
+              style={{ background: '#F43F5E' }}>
+              {unread}
             </span>
           )}
         </Link>
 
-        {/* User Profile */}
-        <div className="flex items-center space-x-2 pl-2 border-l border-gray-800">
-          <div className="w-7 h-7 rounded-full bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-300 font-bold text-xs">
-            <User className="w-4 h-4" />
-          </div>
-          <div className="hidden sm:block text-left">
-            <span className="text-gray-200 font-bold block text-[11px] leading-tight">{user?.name}</span>
-            <span className="text-gray-500 text-[10px] block leading-tight">{user?.role}</span>
-          </div>
-        </div>
+        {/* Live indicator */}
+        <Link to="/live-monitoring"
+          className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-400 hover:text-slate-200 transition-all"
+          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <Activity className="w-3.5 h-3.5 text-cyan-400" />
+          Live
+        </Link>
       </div>
     </header>
   );

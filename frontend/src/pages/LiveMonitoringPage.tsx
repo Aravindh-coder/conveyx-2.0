@@ -3,6 +3,7 @@ import { useTelemetry } from '../context/TelemetryContext';
 import { PageHeader } from '../components/layout/PageHeader';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { TelemetryLineChart } from '../components/charts/TelemetryLineChart';
+import { ThermalHeatmapCanvas } from '../components/digital-twin/ThermalHeatmapCanvas';
 import { Activity, Zap, Cpu, Wifi, CheckCircle2, AlertTriangle, Radio } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -29,7 +30,7 @@ export const LiveMonitoringPage: React.FC = () => {
       {/* Page Header */}
       <PageHeader
         title="Real-Time Hardware Sensor Telemetry Monitor"
-        subtitle="Live Stream from Arduino UNO & ESP32 Wi-Fi Gateway"
+        subtitle="Live Stream from ESP32 Microcontroller & Raspberry Pi 3B+ Edge Gateway"
         badge={
           <span className={clsx('px-3 py-1 rounded-full font-mono text-xs font-bold border',
             hardwareMode === 'LIVE_HARDWARE' ? 'bg-emerald-950 text-emerald-400 border-emerald-500/40' :
@@ -58,7 +59,7 @@ export const LiveMonitoringPage: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
             <span className="font-bold">HARDWARE CONNECTED:</span>
-            <span>Live sensor data from ESP32 gateway → Arduino UNO</span>
+            <span>Live sensor data stream from ESP32 → Raspberry Pi 3B+ Gateway</span>
           </div>
           <span className="text-[10px] text-emerald-400 uppercase">Real-Time Live Data</span>
         </div>
@@ -169,6 +170,9 @@ export const LiveMonitoringPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Infrared Thermal Heatmap Array */}
+      <ThermalHeatmapCanvas />
 
       {/* Real-time Detailed Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

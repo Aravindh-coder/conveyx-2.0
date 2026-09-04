@@ -21,7 +21,7 @@ app.get('/health', (_req, res) => {
     status: 'ONLINE',
     system: 'CONVEY X Telemetry Gateway',
     timestamp: new Date().toISOString(),
-    version: '1.0.0-SIH2026'
+    version: '2.0.0-ENTERPRISE'
   });
 });
 
@@ -30,9 +30,8 @@ initWebSocketServer(server);
 
 // Start HTTP & WebSocket Server
 server.listen(CONFIG.PORT, () => {
-  console.log(`==================================================`);
-  console.log(` CONVEY X - Mining Conveyor Safety Platform API`);
-  console.log(` Listening on port: ${CONFIG.PORT}`);
-  console.log(` Mode: SIH DEMO SIMULATION & REALTIME TELEMETRY`);
+  console.log(`=======================================================`);
+  console.log(` CONVEYX 2.0 Backend Server Running on Port ${CONFIG.PORT}`);
+  console.log(` Mode: ENTERPRISE DEMO SIMULATION & REALTIME TELEMETRY`);
   console.log(`==================================================`);
 });

@@ -29,7 +29,7 @@ export const ControlPanel: React.FC = () => {
             <div>
               <span className="font-semibold text-white">Hardware Interlock Safety Architecture:</span>
               <p className="text-gray-400 text-[11px] mt-0.5">
-                Commands sent here issue HTTP/WebSocket requests to the ESP32 & local Arduino UNO relay module.
+                Commands sent here issue HTTP/WebSocket requests to the ESP32 & Raspberry Pi 3B+ relay module.
                 Local hardware safety logic remains autonomous if Wi-Fi drops out.
               </p>
             </div>

@@ -20,7 +20,7 @@ export const PipelineVisualizer: React.FC = () => {
     {
       id: 'SENSE',
       title: '1. SENSE',
-      desc: 'Arduino UNO / MPU6050 / ACS712 / IR',
+      desc: 'ESP32 / Raspberry Pi 3B+ / MPU6050 / ACS712',
       active: hasData,
       icon: Cpu,
       statusText: hasData ? `${vib}g | ${curr}A` : 'Awaiting hardware…'

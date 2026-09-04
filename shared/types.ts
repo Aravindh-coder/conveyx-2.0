@@ -84,8 +84,8 @@ export interface EventItem {
 export interface DeviceInfo {
   id: string;
   name: string;
-  type: 'MCU' | 'SENSOR' | 'ACTUATOR' | 'CAMERA' | 'RELAY';
-  protocol: 'UART' | 'I2C' | 'ANALOG' | 'DIGITAL' | 'WIFI' | 'RTSP';
+  type: 'MCU' | 'SENSOR' | 'ACTUATOR' | 'CAMERA' | 'RELAY' | 'EDGE_COMPUTE';
+  protocol: 'UART' | 'I2C' | 'ANALOG' | 'DIGITAL' | 'WIFI' | 'RTSP' | 'MQTT' | 'HTTP' | 'MQTT / HTTP' | 'WIFI / MQTT';
   status: DeviceState;
   lastSeen: string;
   firmwareVersion: string;
@@ -142,10 +142,76 @@ export interface MaintenanceComponent {
   notes: string;
 }
 
+export type IncidentStatus = 'DETECTED' | 'ACKNOWLEDGED' | 'INVESTIGATING' | 'RESOLVED' | 'CLOSED';
+export type SOSDeliveryState = 'QUEUED' | 'SENDING' | 'SENT' | 'FAILED';
+
+export interface IncidentItem {
+  id: string;
+  conveyorId: string;
+  siteName: string;
+  timestamp: string;
+  severity: SeverityLevel;
+  condition: string;
+  healthPercentAtDetection: number;
+  riskScoreAtDetection: number;
+  status: IncidentStatus;
+  autoShutdownTriggered: boolean;
+  sosStatus: SOSDeliveryState;
+  assignedTechnician?: string;
+  resolutionNotes?: string;
+  downtimeMinutes?: number;
+}
+
+export interface SOSMessageItem {
+  id: string;
+  timestamp: string;
+  companyName: string;
+  siteName: string;
+  conveyorId: string;
+  status: 'CRITICAL' | 'WARNING' | 'NORMAL';
+  detectedCondition: string;
+  riskScore: number;
+  actionTaken: string;
+  incidentId: string;
+  deliveryState: SOSDeliveryState;
+  recipientMobile: string;
+  recipientName: string;
+  simulated: boolean;
+}
+
+export interface CompanyInfo {
+  companyName: string;
+  industry: string;
+  companyId: string;
+  siteName: string;
+  location: string;
+  adminName: string;
+  adminMobile: string;
+  adminEmail: string;
+  designation: string;
+  emergencyContactName: string;
+  emergencyContactMobile: string;
+  smartPodId: string;
+}
+
+export interface OnboardingData extends CompanyInfo {
+  conveyorName: string;
+  conveyorId: string;
+}
+
 export type DemoScenario =
   | 'NORMAL'
+  | 'VIBRATION_WARNING'
+  | 'HIGH_CURRENT'
+  | 'TEMPERATURE_WARNING'
+  | 'RPM_ABNORMAL'
+  | 'VISION_ANOMALY'
+  | 'CRITICAL_FAULT'
+  | 'SENSOR_OFFLINE'
+  | 'RECOVERY'
   | 'MISALIGNMENT'
   | 'HIGH_VIBRATION'
   | 'MOTOR_OVERLOAD'
   | 'MULTI_SENSOR_ANOMALY'
   | 'CRITICAL_FAILURE';
+

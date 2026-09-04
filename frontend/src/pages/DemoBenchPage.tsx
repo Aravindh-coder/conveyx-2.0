@@ -10,7 +10,7 @@ import { PlaySquare, ShieldAlert, Award, ArrowRight, Activity, Zap, Cpu, CheckCi
 import { DemoScenario } from '@shared/types';
 import { clsx } from 'clsx';
 
-export const SihJudgeDemoPage: React.FC = () => {
+export const JudgeDemoPage: React.FC = () => {
   const { conveyor, packet, risk, currentScenario, setScenario, sendMotorCommand } = useTelemetry();
   const riskScore = risk?.score ?? 0;
   const vibRms = packet?.vibration.rms.toFixed(2) ?? '—';
@@ -23,7 +23,7 @@ export const SihJudgeDemoPage: React.FC = () => {
     { id: 'HIGH_VIBRATION', label: '3. Bearing Vibration Spike', stepText: 'MPU6050 spikes to 3.4g RMS. Anomaly flagged.', highlight: 'text-orange-400' },
     { id: 'MOTOR_OVERLOAD', label: '4. Motor Resistance Load', stepText: 'ACS712 current reaches 2.5A. Ore jam risk.', highlight: 'text-orange-400' },
     { id: 'MULTI_SENSOR_ANOMALY', label: '5. Multi-Sensor Fusion Risk', stepText: 'Vibration + Current + Alignment elevated. Risk 68.', highlight: 'text-rose-400' },
-    { id: 'CRITICAL_FAILURE', label: '6. Critical Trip & E-Stop', stepText: 'Risk > 85. Local Arduino Relay opens. Motor OFF.', highlight: 'text-rose-500 font-extrabold' }
+    { id: 'CRITICAL_FAILURE', label: '6. Critical Trip & E-Stop', stepText: 'Risk > 85. Hardware Safety Relay opens. Motor OFF.', highlight: 'text-rose-500 font-extrabold' }
   ];
 
   return (

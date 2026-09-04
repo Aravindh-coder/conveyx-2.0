@@ -2,10 +2,12 @@ import React from 'react';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { Outlet } from 'react-router-dom';
+import { VoiceAssistant } from '../common/VoiceAssistant';
+import { AiCopilotWidget } from '../common/AiCopilotWidget';
 
 export const Layout: React.FC = () => {
   return (
-    <div className="flex h-screen bg-[#0B0F17] overflow-hidden">
+    <div className="flex h-screen overflow-hidden relative">
       {/* Sidebar Navigation */}
       <Sidebar />
 
@@ -16,6 +18,12 @@ export const Layout: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Global AI Audio Voice Assistant */}
+      <VoiceAssistant />
+
+      {/* Global AI Copilot Industrial Chatbot */}
+      <AiCopilotWidget />
     </div>
   );
 };

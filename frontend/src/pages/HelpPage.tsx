@@ -17,8 +17,8 @@ export const HelpPage: React.FC = () => {
             <span>Hardware Microcontroller Mapping</span>
           </div>
           <ul className="space-y-2 text-xs text-gray-300">
-            <li>• <strong>Arduino UNO R3:</strong> Reads analog ACS712 pin A0, MPU6050 I2C 0x68, IR D2/D3. Controls local relay D8.</li>
-            <li>• <strong>ESP32 Wi-Fi Gateway:</strong> Receives UART telemetry from Arduino, formats JSON, and emits WebSockets.</li>
+            <li>• <strong>ESP32 Microcontroller:</strong> Reads ACS712 current, MPU6050 I2C vibration, DS18B20 temp & IR alignment. Controls local hardware relay.</li>
+            <li>• <strong>Raspberry Pi 3B+ Edge Gateway:</strong> Receives telemetry stream from ESP32, runs Python OpenCV vision model & emits WebSockets.</li>
             <li>• <strong>Local Interlock Relay:</strong> Normally-Closed relay cutting 5V DC motor power if risk &gt; 85.</li>
           </ul>
         </div>

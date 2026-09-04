@@ -35,11 +35,57 @@ export function generateSimulatedPacket(): SensorDataPacket {
   } else {
     switch (scenario) {
       case 'NORMAL':
+      case 'RECOVERY':
         x = 0.15 + noise(0.05);
         y = 0.20 + noise(0.05);
         z = 1.08 + noise(0.06);
         rms = 1.27 + noise(0.12);
         current = 0.84 + noise(0.03);
+        break;
+
+      case 'VIBRATION_WARNING':
+      case 'HIGH_VIBRATION':
+        x = 1.85 + noise(0.35);
+        y = 2.10 + noise(0.40);
+        z = 2.45 + noise(0.30);
+        rms = 3.42 + noise(0.35);
+        current = 1.22 + noise(0.08);
+        peakCurrent = 1.65;
+        break;
+
+      case 'HIGH_CURRENT':
+      case 'MOTOR_OVERLOAD':
+        x = 0.45 + noise(0.10);
+        y = 0.50 + noise(0.10);
+        z = 1.40 + noise(0.12);
+        rms = 2.15 + noise(0.20);
+        current = 2.48 + noise(0.25);
+        peakCurrent = 3.10;
+        isOverload = true;
+        break;
+
+      case 'TEMPERATURE_WARNING':
+        x = 0.40 + noise(0.08);
+        y = 0.45 + noise(0.08);
+        z = 1.30 + noise(0.10);
+        rms = 2.05 + noise(0.15);
+        current = 1.95 + noise(0.12);
+        break;
+
+      case 'RPM_ABNORMAL':
+        x = 0.65 + noise(0.15);
+        y = 0.85 + noise(0.20);
+        z = 1.60 + noise(0.18);
+        rms = 2.45 + noise(0.25);
+        current = 2.10 + noise(0.18);
+        break;
+
+      case 'VISION_ANOMALY':
+        x = 0.35 + noise(0.08);
+        y = 0.40 + noise(0.08);
+        z = 1.15 + noise(0.08);
+        rms = 1.55 + noise(0.15);
+        current = 1.10 + noise(0.08);
         break;
 
       case 'MISALIGNMENT':
@@ -50,25 +96,6 @@ export function generateSimulatedPacket(): SensorDataPacket {
         current = 1.05 + noise(0.05);
         leftIR = true;
         alignmentStatus = 'MISALIGNED_LEFT';
-        break;
-
-      case 'HIGH_VIBRATION':
-        x = 1.85 + noise(0.35);
-        y = 2.10 + noise(0.40);
-        z = 2.45 + noise(0.30);
-        rms = 3.42 + noise(0.35);
-        current = 1.22 + noise(0.08);
-        peakCurrent = 1.65;
-        break;
-
-      case 'MOTOR_OVERLOAD':
-        x = 0.45 + noise(0.10);
-        y = 0.50 + noise(0.10);
-        z = 1.40 + noise(0.12);
-        rms = 2.15 + noise(0.20);
-        current = 2.48 + noise(0.25);
-        peakCurrent = 3.10;
-        isOverload = true;
         break;
 
       case 'MULTI_SENSOR_ANOMALY':
@@ -82,6 +109,7 @@ export function generateSimulatedPacket(): SensorDataPacket {
         isOverload = true;
         break;
 
+      case 'CRITICAL_FAULT':
       case 'CRITICAL_FAILURE':
         x = 2.85 + noise(0.40);
         y = 3.10 + noise(0.50);
@@ -93,6 +121,15 @@ export function generateSimulatedPacket(): SensorDataPacket {
         isOverload = true;
         isStall = true;
         motorState = 'FAULT';
+        break;
+
+      case 'SENSOR_OFFLINE':
+        x = 0;
+        y = 0;
+        z = 0;
+        rms = 0;
+        current = 0;
+        motorState = 'STOPPED';
         break;
     }
   }

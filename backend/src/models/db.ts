@@ -7,7 +7,10 @@ import {
   VisionInspection,
   SensorDataPacket,
   DemoScenario,
-  HardwareMode
+  HardwareMode,
+  IncidentItem,
+  SOSMessageItem,
+  CompanyInfo
 } from '../../../shared/types.js';
 
 class InMemoryDB {
@@ -39,27 +42,27 @@ class InMemoryDB {
   // All devices start DISCONNECTED until real hardware sends data
   public devices: DeviceInfo[] = [
     {
-      id: 'ARDUINO-001',
-      name: 'Arduino UNO R3 (Local Safety Controller)',
-      type: 'MCU',
-      protocol: 'UART',
+      id: 'RPI-GATEWAY-01',
+      name: 'Raspberry Pi 3B+ (Edge AI Gateway)',
+      type: 'EDGE_COMPUTE',
+      protocol: 'MQTT / HTTP',
       status: 'DISCONNECTED',
       lastSeen: 'Never',
       firmwareVersion: '—',
       packetCount: 0,
-      description: 'Handles local analog reading & instant hardware relay trigger cutoff.'
+      description: 'Local edge compute node running sensor aggregation, Python OpenCV & ML inference.'
     },
     {
       id: 'ESP32-001',
-      name: 'ESP32 Wi-Fi Gateway',
+      name: 'ESP32 SmartPod Telemetry Node',
       type: 'MCU',
-      protocol: 'WIFI',
+      protocol: 'WIFI / MQTT',
       status: 'DISCONNECTED',
       lastSeen: 'Never',
       firmwareVersion: '—',
       ipAddress: undefined,
       packetCount: 0,
-      description: 'Receives UART packets from Arduino UNO and relays JSON stream to the web platform.'
+      description: 'Reads MPU6050 vibration, ACS712 current, DS18B20 temp & IR sensors and streams to Raspberry Pi 3B+ / Web.'
     },
     {
       id: 'SENSOR-MPU-01',
@@ -154,7 +157,7 @@ class InMemoryDB {
       status: d.id === 'CAM-VISION-01' ? 'WARNING' : 'CONNECTED',
       lastSeen: now,
       firmwareVersion: d.id === 'ESP32-001' ? 'v1.4.2' :
-                       d.id === 'ARDUINO-001' ? 'v2.1.0' : 'N/A',
+                       d.id === 'RPI-GATEWAY-01' ? 'v2.4.0 (Linux)' : 'N/A',
       ipAddress: d.id === 'ESP32-001' ? (packet as any).ipAddress || '—' : d.ipAddress,
       packetCount: d.packetCount + 1,
     }));
@@ -260,6 +263,59 @@ class InMemoryDB {
       nextScheduledDate: '2026-11-20',
       operatingHours: 310,
       notes: 'Lenses cleaned of iron ore dust.'
+    }
+  ];
+
+  public company: CompanyInfo = {
+    companyName: 'ABC Cement & Mining Corp',
+    industry: 'Mining & Cement',
+    companyId: 'COMP-2026-88',
+    siteName: 'Plant A – Primary Crusher',
+    location: 'Iron Ore Shaft 4, Block B',
+    adminName: 'Aravindh (Chief Engineer)',
+    adminMobile: '+91 98765 43210',
+    adminEmail: 'admin@abccement.com',
+    designation: 'Head of Operations & Safety',
+    emergencyContactName: 'Safety Control Room',
+    emergencyContactMobile: '+91 91234 56789',
+    smartPodId: 'POD-2026-NODE1'
+  };
+
+  public incidents: IncidentItem[] = [
+    {
+      id: 'INC-2026-0001',
+      conveyorId: 'CONV-01',
+      siteName: 'Plant A – Primary Crusher',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      severity: 'CRITICAL',
+      condition: 'Abnormal vibration + elevated current',
+      healthPercentAtDetection: 18,
+      riskScoreAtDetection: 94,
+      status: 'DETECTED',
+      autoShutdownTriggered: true,
+      sosStatus: 'SENT',
+      assignedTechnician: 'Tech Lead Rajesh K.',
+      resolutionNotes: 'Awaiting mechanical bearing inspection.',
+      downtimeMinutes: 45
+    }
+  ];
+
+  public sosMessages: SOSMessageItem[] = [
+    {
+      id: 'SOS-2026-0001',
+      timestamp: new Date(Date.now() - 3600000).toISOString(),
+      companyName: 'ABC Cement & Mining Corp',
+      siteName: 'Plant A – Primary Crusher',
+      conveyorId: 'CONV-01',
+      status: 'CRITICAL',
+      detectedCondition: 'Abnormal vibration + elevated current',
+      riskScore: 94,
+      actionTaken: 'Conveyor automatically stopped via Interlock Relay',
+      incidentId: 'INC-2026-0001',
+      deliveryState: 'SENT',
+      recipientMobile: '+91 91234 56789',
+      recipientName: 'Safety Control Room',
+      simulated: true
     }
   ];
 

@@ -9,7 +9,11 @@ import {
   DemoScenario,
   DeviceInfo,
   VisionInspection,
-  HardwareMode
+  HardwareMode,
+  IncidentItem,
+  SOSMessageItem,
+  CompanyInfo,
+  OnboardingData
 } from '@shared/types';
 
 interface TelemetryContextType {
@@ -22,6 +26,9 @@ interface TelemetryContextType {
   history: SensorDataPacket[];
   latestVision?: VisionInspection;
   currentScenario: DemoScenario;
+  incidents: IncidentItem[];
+  sosMessages: SOSMessageItem[];
+  company: CompanyInfo | null;
   isSocketConnected: boolean;      // WebSocket server reachable
   hardwareMode: HardwareMode;      // DISCONNECTED | SIMULATION | LIVE_HARDWARE
   isHardwareConnected: boolean;    // true only for LIVE_HARDWARE
@@ -32,6 +39,9 @@ interface TelemetryContextType {
   triggerVisionScan: (condition?: string, severity?: string) => Promise<void>;
   enableSimulation: () => void;
   disableSimulation: () => void;
+  updateIncidentStatus: (id: string, status: IncidentItem['status'], notes?: string) => Promise<void>;
+  triggerSos: (condition?: string) => Promise<void>;
+  submitOnboarding: (data: OnboardingData) => Promise<void>;
 }
 
 /** A completely idle conveyor – no telemetry */
@@ -64,8 +74,11 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [history, setHistory] = useState<SensorDataPacket[]>([]);
   const [latestVision, setLatestVision] = useState<VisionInspection | undefined>(undefined);
   const [currentScenario, setCurrentScenario] = useState<DemoScenario>('NORMAL');
+  const [incidents, setIncidents] = useState<IncidentItem[]>([]);
+  const [sosMessages, setSosMessages] = useState<SOSMessageItem[]>([]);
+  const [company, setCompany] = useState<CompanyInfo | null>(null);
 
-  // Honest connection state
+  // Connection state
   const [isSocketConnected, setIsSocketConnected] = useState<boolean>(false);
   const [hardwareMode, setHardwareMode] = useState<HardwareMode>('DISCONNECTED');
   const [isHardwareConnected, setIsHardwareConnected] = useState<boolean>(false);
@@ -119,7 +132,7 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (data.hardwareMode) setHardwareMode(data.hardwareMode);
     });
 
-    // Hardware mode change (connect / disconnect / timeout)
+    // Hardware mode change
     s.on('hardware_mode_changed', (data) => {
       if (data.hardwareMode) setHardwareMode(data.hardwareMode);
       setIsHardwareConnected(!!data.isHardwareConnected);
@@ -131,24 +144,18 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     s.on('conveyor_updated', ({ conveyor }) => setConveyor(conveyor));
     s.on('alerts_updated', ({ alerts }) => setAlerts(alerts));
     s.on('vision_updated', ({ inspection }) => setLatestVision(inspection));
+    s.on('incidents_updated', ({ incidents }) => setIncidents(incidents));
+    s.on('sos_updated', ({ sosMessages }) => setSosMessages(sosMessages));
 
     setSocket(s);
 
-    // Hydrate devices from backend
-    fetch('/api/devices')
-      .then(res => res.json())
-      .then(data => { if (data.devices) setDevices(data.devices); })
-      .catch(() => {});
-
-    fetch('/api/alerts')
-      .then(res => res.json())
-      .then(data => { if (data.alerts) setAlerts(data.alerts); })
-      .catch(() => {});
-
-    fetch('/api/events')
-      .then(res => res.json())
-      .then(data => { if (data.events) setEvents(data.events); })
-      .catch(() => {});
+    // Hydrate state from backend APIs
+    fetch('/api/devices').then(res => res.json()).then(data => { if (data.devices) setDevices(data.devices); }).catch(() => {});
+    fetch('/api/alerts').then(res => res.json()).then(data => { if (data.alerts) setAlerts(data.alerts); }).catch(() => {});
+    fetch('/api/events').then(res => res.json()).then(data => { if (data.events) setEvents(data.events); }).catch(() => {});
+    fetch('/api/incidents').then(res => res.json()).then(data => { if (data.incidents) setIncidents(data.incidents); }).catch(() => {});
+    fetch('/api/sos').then(res => res.json()).then(data => { if (data.sosMessages) setSosMessages(data.sosMessages); }).catch(() => {});
+    fetch('/api/company').then(res => res.json()).then(data => { if (data.company) setCompany(data.company); if (data.conveyor) setConveyor(data.conveyor); }).catch(() => {});
 
     fetch('/api/hardware/status')
       .then(res => res.json())
@@ -169,7 +176,14 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ scenario })
-    }).catch(() => {});
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.conveyor) setConveyor(data.conveyor);
+        if (data.incidents) setIncidents(data.incidents);
+        if (data.sosMessages) setSosMessages(data.sosMessages);
+      })
+      .catch(() => {});
   }, [socket]);
 
   const sendMotorCommand = useCallback((action: 'START' | 'STOP' | 'EMERGENCY_STOP') => {
@@ -194,6 +208,52 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
       const data = await res.json();
       if (data.inspection) setLatestVision(data.inspection);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const updateIncidentStatus = useCallback(async (id: string, status: IncidentItem['status'], notes?: string) => {
+    try {
+      const res = await fetch(`/api/incidents/${id}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, resolutionNotes: notes })
+      });
+      const data = await res.json();
+      if (data.incident) {
+        setIncidents(prev => prev.map(i => i.id === id ? data.incident : i));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const triggerSos = useCallback(async (condition = 'MANUAL SOS TRIGGER') => {
+    try {
+      const res = await fetch('/api/sos/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ condition })
+      });
+      const data = await res.json();
+      if (data.sosMessage) setSosMessages(prev => [data.sosMessage, ...prev]);
+      if (data.incident) setIncidents(prev => [data.incident, ...prev]);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  const submitOnboarding = useCallback(async (data: OnboardingData) => {
+    try {
+      const res = await fetch('/api/onboarding', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const result = await res.json();
+      if (result.company) setCompany(result.company);
+      if (result.conveyor) setConveyor(result.conveyor);
     } catch (e) {
       console.error(e);
     }
@@ -236,6 +296,9 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         history,
         latestVision,
         currentScenario,
+        incidents,
+        sosMessages,
+        company,
         isSocketConnected,
         hardwareMode,
         isHardwareConnected,
@@ -245,7 +308,10 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         acknowledgeAlert,
         triggerVisionScan,
         enableSimulation,
-        disableSimulation
+        disableSimulation,
+        updateIncidentStatus,
+        triggerSos,
+        submitOnboarding
       }}
     >
       {children}
