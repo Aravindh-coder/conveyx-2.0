@@ -440,6 +440,16 @@ body.light-mode {
   color: #0F172A !important;
 }
 
+/* Landing Page & Auth Cards MUST maintain dark theme styling & white text */
+.bg-landing,
+.bg-landing * {
+  color: inherit;
+}
+.bg-landing h1,
+.bg-landing h1 span:not(.text-gradient-multi) {
+  color: #FFFFFF !important;
+}
+
 /* Bright Tech Grid Background with colorful ambient glows */
 .light-mode .bg-tech-grid,
 .light-mode main.bg-tech-grid {

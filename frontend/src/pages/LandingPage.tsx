@@ -211,7 +211,7 @@ export const LandingPage: React.FC = () => {
             <div className="space-y-3">
               <h1 className="text-4xl sm:text-5xl xl:text-6xl font-black leading-[1.08] tracking-tight text-white"
                 style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                Predict Before
+                <span style={{ color: '#FFFFFF' }}>Predict Before</span>
                 <br />
                 <span className="text-gradient-multi">It Fails.</span>
               </h1>
