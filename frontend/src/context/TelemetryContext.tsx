@@ -87,8 +87,10 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const [socket, setSocket] = useState<Socket | null>(null);
 
+  const BACKEND_URL = import.meta.env.VITE_API_URL || '';
+
   useEffect(() => {
-    const s = io({
+    const s = io(BACKEND_URL, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
       reconnectionDelay: 1500
@@ -151,14 +153,14 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setSocket(s);
 
     // Hydrate state from backend APIs
-    fetch('/api/devices').then(res => res.json()).then(data => { if (data.devices) setDevices(data.devices); }).catch(() => {});
-    fetch('/api/alerts').then(res => res.json()).then(data => { if (data.alerts) setAlerts(data.alerts); }).catch(() => {});
-    fetch('/api/events').then(res => res.json()).then(data => { if (data.events) setEvents(data.events); }).catch(() => {});
-    fetch('/api/incidents').then(res => res.json()).then(data => { if (data.incidents) setIncidents(data.incidents); }).catch(() => {});
-    fetch('/api/sos').then(res => res.json()).then(data => { if (data.sosMessages) setSosMessages(data.sosMessages); }).catch(() => {});
-    fetch('/api/company').then(res => res.json()).then(data => { if (data.company) setCompany(data.company); if (data.conveyor) setConveyor(data.conveyor); }).catch(() => {});
+    fetch(`${BACKEND_URL}/api/devices`).then(res => res.json()).then(data => { if (data.devices) setDevices(data.devices); }).catch(() => {});
+    fetch(`${BACKEND_URL}/api/alerts`).then(res => res.json()).then(data => { if (data.alerts) setAlerts(data.alerts); }).catch(() => {});
+    fetch(`${BACKEND_URL}/api/events`).then(res => res.json()).then(data => { if (data.events) setEvents(data.events); }).catch(() => {});
+    fetch(`${BACKEND_URL}/api/incidents`).then(res => res.json()).then(data => { if (data.incidents) setIncidents(data.incidents); }).catch(() => {});
+    fetch(`${BACKEND_URL}/api/sos`).then(res => res.json()).then(data => { if (data.sosMessages) setSosMessages(data.sosMessages); }).catch(() => {});
+    fetch(`${BACKEND_URL}/api/company`).then(res => res.json()).then(data => { if (data.company) setCompany(data.company); if (data.conveyor) setConveyor(data.conveyor); }).catch(() => {});
 
-    fetch('/api/hardware/status')
+    fetch(`${BACKEND_URL}/api/hardware/status`)
       .then(res => res.json())
       .then(data => {
         setHardwareMode(data.hardwareMode);
@@ -173,7 +175,7 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const setScenario = useCallback((scenario: DemoScenario) => {
     setCurrentScenario(scenario);
     if (socket) socket.emit('set_scenario', scenario);
-    fetch('/api/demo/scenario', {
+    fetch(`${BACKEND_URL}/api/demo/scenario`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ scenario })
@@ -201,9 +203,9 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     if (socket) socket.emit('motor_control', { action });
 
-    const ep = action === 'START' ? '/api/motor/start'
-             : action === 'EMERGENCY_STOP' ? '/api/motor/emergency-stop'
-             : '/api/motor/stop';
+    const ep = action === 'START' ? `${BACKEND_URL}/api/motor/start`
+             : action === 'EMERGENCY_STOP' ? `${BACKEND_URL}/api/motor/emergency-stop`
+             : `${BACKEND_URL}/api/motor/stop`;
     fetch(ep, { method: 'POST' })
       .then(res => res.json())
       .then(data => {
@@ -215,17 +217,17 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const acknowledgeAlert = useCallback((id: string) => {
     setAlerts(prev => prev.map(a => (a.id === id ? { ...a, acknowledged: true, acknowledgedBy: 'Operator' } : a)));
-    fetch(`/api/alerts/${id}/acknowledge`, { method: 'POST' }).catch(() => {});
+    fetch(`${BACKEND_URL}/api/alerts/${id}/acknowledge`, { method: 'POST' }).catch(() => {});
   }, []);
 
   const clearAlerts = useCallback(() => {
     setAlerts([]);
-    fetch('/api/alerts/clear', { method: 'POST' }).catch(() => {});
+    fetch(`${BACKEND_URL}/api/alerts/clear`, { method: 'POST' }).catch(() => {});
   }, []);
 
   const triggerVisionScan = useCallback(async (condition = 'TEAR', severity = 'HIGH') => {
     try {
-      const res = await fetch('/api/vision/analyze', {
+      const res = await fetch(`${BACKEND_URL}/api/vision/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ condition, severity })
@@ -239,7 +241,7 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const updateIncidentStatus = useCallback(async (id: string, status: IncidentItem['status'], notes?: string) => {
     try {
-      const res = await fetch(`/api/incidents/${id}/status`, {
+      const res = await fetch(`${BACKEND_URL}/api/incidents/${id}/status`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, resolutionNotes: notes })
@@ -255,7 +257,7 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const triggerSos = useCallback(async (condition = 'MANUAL SOS TRIGGER') => {
     try {
-      const res = await fetch('/api/sos/trigger', {
+      const res = await fetch(`${BACKEND_URL}/api/sos/trigger`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ condition })
@@ -270,7 +272,7 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const submitOnboarding = useCallback(async (data: OnboardingData) => {
     try {
-      const res = await fetch('/api/onboarding', {
+      const res = await fetch(`${BACKEND_URL}/api/onboarding`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -284,7 +286,7 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, []);
 
   const enableSimulation = useCallback(() => {
-    fetch('/api/simulation/enable', { method: 'POST' })
+    fetch(`${BACKEND_URL}/api/simulation/enable`, { method: 'POST' })
       .then(res => res.json())
       .then(data => {
         if (data.hardwareMode) setHardwareMode(data.hardwareMode);
@@ -294,7 +296,7 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [socket]);
 
   const disableSimulation = useCallback(() => {
-    fetch('/api/simulation/disable', { method: 'POST' })
+    fetch(`${BACKEND_URL}/api/simulation/disable`, { method: 'POST' })
       .then(res => res.json())
       .then(data => {
         if (data.hardwareMode) {
