@@ -2,10 +2,10 @@
   "name": "conveyx-backend",
   "version": "1.0.0",
   "description": "Backend IoT & Risk Engine API for CONVEY X Mining Conveyor Safety Platform",
-  "main": "dist/backend/src/index.js",
+  "main": "dist/src/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/backend/src/index.js",
+    "start": "node dist/src/index.js",
     "dev": "ts-node src/index.ts"
   },
   "dependencies": {
