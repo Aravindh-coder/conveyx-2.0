@@ -10,10 +10,8 @@ export const LoginPage: React.FC = () => {
   const { enableSimulation } = useTelemetry();
 
   // Saved credentials state
-  const [email, setEmail] = useState<string>(() => {
-    return localStorage.getItem('conveyx_saved_email') || 'operator@mining.conveyx.io';
-  });
-  const [password, setPassword] = useState<string>('conveyx-secure-pass');
+  const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
   const [showPass, setShowPass] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -177,6 +175,8 @@ export const LoginPage: React.FC = () => {
                 <Mail className="w-4 h-4 text-gray-500 absolute left-3.5 top-3" />
                 <input
                   type="email"
+                  name="conveyx_user_email"
+                  autoComplete="off"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   required
@@ -194,6 +194,8 @@ export const LoginPage: React.FC = () => {
                 <Lock className="w-4 h-4 text-gray-500 absolute left-3.5 top-3" />
                 <input
                   type={showPass ? 'text' : 'password'}
+                  name="conveyx_user_pass"
+                  autoComplete="new-password"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required

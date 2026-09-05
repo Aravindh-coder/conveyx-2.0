@@ -6,6 +6,7 @@ import { generateSimulatedPacket } from '../services/demoSimulator.service.js';
 import { evaluateConveyorRisk } from '../services/riskEngine.service.js';
 import { checkAndGenerateAlerts } from '../services/alertEngine.service.js';
 import { getIO } from '../services/websocket.service.js';
+import { saveRegistrationData } from '../services/database.service.js';
 
 const router = Router();
 
@@ -144,6 +145,18 @@ router.get('/devices', (_req, res) => {
   return res.json({ devices: db.devices });
 });
 
+// Hardware connection status — called by frontend on startup
+router.get('/hardware/status', (_req, res) => {
+  return res.json({
+    hardwareMode: db.hardwareMode,
+    isHardwareConnected: db.hardwareMode === 'LIVE_HARDWARE',
+    devices: db.devices,
+    conveyor: db.conveyor,
+    localSafetyActive: db.localSafetyActive
+  });
+});
+
+
 // ESP32 Telemetry Receiver API – activates hardware mode on first real packet
 router.post('/device-data', (req, res) => {
   const packet = req.body;
@@ -207,21 +220,28 @@ router.post('/motor/start', (_req, res) => {
   db.conveyor.status = 'RUNNING';
   const io = getIO();
   io?.emit('conveyor_updated', { conveyor: db.conveyor });
-  return res.json({ success: true, status: db.conveyor.status });
+  return res.json({ success: true, status: db.conveyor.status, conveyor: db.conveyor });
+});
+
+router.post('/alerts/clear', (_req, res) => {
+  db.alerts = [];
+  const io = getIO();
+  io?.emit('alerts_updated', { alerts: [] });
+  return res.json({ success: true, alerts: [] });
 });
 
 router.post('/motor/stop', (_req, res) => {
   db.conveyor.status = 'STOPPED';
   const io = getIO();
   io?.emit('conveyor_updated', { conveyor: db.conveyor });
-  return res.json({ success: true, status: db.conveyor.status });
+  return res.json({ success: true, status: db.conveyor.status, conveyor: db.conveyor });
 });
 
 router.post('/motor/emergency-stop', (_req, res) => {
   db.conveyor.status = 'EMERGENCY_STOP';
   const io = getIO();
   io?.emit('conveyor_updated', { conveyor: db.conveyor });
-  return res.json({ success: true, status: db.conveyor.status });
+  return res.json({ success: true, status: db.conveyor.status, conveyor: db.conveyor });
 });
 
 // ==================================================
@@ -507,6 +527,8 @@ router.post('/onboarding', (req, res) => {
   if (data.conveyorId) {
     db.conveyor.id = data.conveyorId;
   }
+
+  saveRegistrationData(db.company, db.conveyor);
 
   return res.json({ success: true, company: db.company, conveyor: db.conveyor });
 });

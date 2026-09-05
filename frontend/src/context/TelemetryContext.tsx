@@ -36,6 +36,7 @@ interface TelemetryContextType {
   setScenario: (scenario: DemoScenario) => void;
   sendMotorCommand: (action: 'START' | 'STOP' | 'EMERGENCY_STOP') => void;
   acknowledgeAlert: (id: string) => void;
+  clearAlerts: () => void;
   triggerVisionScan: (condition?: string, severity?: string) => Promise<void>;
   enableSimulation: () => void;
   disableSimulation: () => void;
@@ -187,16 +188,39 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   }, [socket]);
 
   const sendMotorCommand = useCallback((action: 'START' | 'STOP' | 'EMERGENCY_STOP') => {
+    const newStatus = action === 'START' ? 'RUNNING' : action === 'STOP' ? 'STOPPED' : 'EMERGENCY_STOP';
+    
+    // Immediate optimistic update so UI reflects the command instantly
+    setConveyor(prev => ({
+      ...prev,
+      status: newStatus,
+      beltSpeedMps: action === 'START' ? 1.5 : 0,
+      motorCurrentA: action === 'START' ? 0.82 : 0,
+      vibrationRmsG: action === 'START' ? 1.27 : 0
+    }));
+
     if (socket) socket.emit('motor_control', { action });
+
     const ep = action === 'START' ? '/api/motor/start'
              : action === 'EMERGENCY_STOP' ? '/api/motor/emergency-stop'
              : '/api/motor/stop';
-    fetch(ep, { method: 'POST' }).catch(() => {});
+    fetch(ep, { method: 'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if (data.conveyor) setConveyor(data.conveyor);
+        if (data.hardwareMode) setHardwareMode(data.hardwareMode);
+      })
+      .catch(err => console.error('Motor command failed:', err));
   }, [socket]);
 
   const acknowledgeAlert = useCallback((id: string) => {
     setAlerts(prev => prev.map(a => (a.id === id ? { ...a, acknowledged: true, acknowledgedBy: 'Operator' } : a)));
     fetch(`/api/alerts/${id}/acknowledge`, { method: 'POST' }).catch(() => {});
+  }, []);
+
+  const clearAlerts = useCallback(() => {
+    setAlerts([]);
+    fetch('/api/alerts/clear', { method: 'POST' }).catch(() => {});
   }, []);
 
   const triggerVisionScan = useCallback(async (condition = 'TEAR', severity = 'HIGH') => {
@@ -306,6 +330,7 @@ export const TelemetryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setScenario,
         sendMotorCommand,
         acknowledgeAlert,
+        clearAlerts,
         triggerVisionScan,
         enableSimulation,
         disableSimulation,

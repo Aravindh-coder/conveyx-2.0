@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { useTelemetry } from '../context/TelemetryContext';
 import { PageHeader } from '../components/layout/PageHeader';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { Bell, CheckCircle2, ShieldAlert } from 'lucide-react';
-import { SeverityLevel } from '@shared/types';
+import { CheckCircle2, Trash2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const AlertsPage: React.FC = () => {
-  const { alerts, acknowledgeAlert } = useTelemetry();
+  const { alerts, acknowledgeAlert, clearAlerts } = useTelemetry();
   const [filter, setFilter] = useState<string>('ALL');
 
   const filteredAlerts = alerts.filter(a => {
@@ -22,19 +21,32 @@ export const AlertsPage: React.FC = () => {
         title="Industrial Alert Management Center"
         subtitle="Automated Real-Time Sensor Anomaly & Safety Interlock Notifications"
         actions={
-          <div className="flex space-x-2 text-xs">
-            {['ALL', 'UNACKNOWLEDGED', 'CRITICAL', 'HIGH', 'WARNING'].map(f => (
+          <div className="flex items-center space-x-3 text-xs">
+            <div className="flex space-x-1.5">
+              {['ALL', 'UNACKNOWLEDGED', 'CRITICAL', 'HIGH', 'WARNING'].map(f => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={clsx(
+                    'px-3 py-1.5 rounded-lg border transition-all font-bold',
+                    filter === f ? 'bg-emerald-500 text-black border-emerald-400' : 'bg-gray-900 text-gray-400 border-gray-800 hover:text-white'
+                  )}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            {alerts.length > 0 && (
               <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={clsx(
-                  'px-3 py-1.5 rounded-lg border transition-all font-bold',
-                  filter === f ? 'bg-cyan-500 text-black border-cyan-400' : 'bg-gray-900 text-gray-400 border-gray-800 hover:text-white'
-                )}
+                onClick={clearAlerts}
+                className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold transition-all"
+                title="Clear all alerts"
               >
-                {f}
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>CLEAR ALL</span>
               </button>
-            ))}
+            )}
           </div>
         }
       />
@@ -65,7 +77,7 @@ export const AlertsPage: React.FC = () => {
                     <span className="text-[10px] text-gray-500">{alert.id}</span>
                   </div>
                   <p className="text-xs text-gray-300 font-sans mt-1">{alert.description}</p>
-                  <p className="text-[11px] text-cyan-400 mt-1">Action: {alert.recommendedAction}</p>
+                  <p className="text-[11px] text-emerald-400 mt-1">Action: {alert.recommendedAction}</p>
                 </div>
               </div>
 
@@ -76,7 +88,7 @@ export const AlertsPage: React.FC = () => {
                 {!alert.acknowledged ? (
                   <button
                     onClick={() => acknowledgeAlert(alert.id)}
-                    className="px-3 py-1.5 rounded bg-cyan-600 hover:bg-cyan-500 text-black font-bold text-xs"
+                    className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-black font-bold text-xs"
                   >
                     Acknowledge
                   </button>

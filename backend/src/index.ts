@@ -4,6 +4,10 @@ import cors from 'cors';
 import { CONFIG } from './config.js';
 import apiRoutes from './routes/api.routes.js';
 import { initWebSocketServer } from './services/websocket.service.js';
+import { initDatabase } from './services/database.service.js';
+
+// Hydrate saved site registrations
+initDatabase();
 
 const app = express();
 const server = http.createServer(app);

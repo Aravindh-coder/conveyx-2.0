@@ -85,8 +85,9 @@ export function checkAndGenerateAlerts(
 
   // 3. Motor Overload / Stall Check
   if (packet.motor.isOverload || packet.motor.isStall) {
+    const titleToUse = packet.motor.isStall ? 'Motor Mechanical Stall Detected' : 'Motor Current Overload Above Baseline';
     const existingMotor = db.alerts.find(
-      a => a.title.includes('Motor Current Overload') && !a.acknowledged
+      a => (a.title.includes('Motor Current Overload') || a.title.includes('Motor Mechanical Stall') || a.title === titleToUse) && !a.acknowledged
     );
     if (!existingMotor) {
       const alert: AlertItem = {

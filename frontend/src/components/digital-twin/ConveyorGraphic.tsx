@@ -38,7 +38,7 @@ export const ConveyorGraphic: React.FC = () => {
 
       <div className="w-full flex items-center justify-between mb-4 z-10">
         <div className="flex items-center space-x-3">
-          <span className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-wider">
+          <span className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">
             SYSTEM DIGITAL TWIN: {conveyor.id}
           </span>
           <span className="text-xs font-mono px-2 py-0.5 rounded bg-black/60 border border-white/10 text-gray-300">
@@ -77,15 +77,6 @@ export const ConveyorGraphic: React.FC = () => {
               <stop offset="50%" stopColor="#111827" />
               <stop offset="100%" stopColor="#0B0F17" />
             </linearGradient>
-
-            <filter id="glowGreen" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="6" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-            <filter id="glowRed" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="8" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
           </defs>
 
           {/* Frame Base Structure */}
@@ -104,24 +95,27 @@ export const ConveyorGraphic: React.FC = () => {
               height="80"
               rx="6"
               fill={isHighCurr ? '#7F1D1D' : '#1E293B'}
-              stroke={isHighCurr ? '#EF4444' : '#06B6D4'}
+              stroke={isHighCurr ? '#EF4444' : '#10B981'}
               strokeWidth="2"
             />
-            <circle cx="-10" cy="0" r="18" fill="#0F172A" stroke="#38BDF8" strokeWidth="2" />
+            <circle cx="-10" cy="0" r="18" fill="#0F172A" stroke="#10B981" strokeWidth="2" />
             {isRunning && (
-              <line x1="-10" y1="-14" x2="-10" y2="14" stroke="#38BDF8" strokeWidth="3" className="animate-spin origin-[center_center]" />
+              <g transform="rotate(45, -10, 0)">
+                <line x1="-22" y1="0" x2="2" y2="0" stroke="#10B981" strokeWidth="3" />
+                <line x1="-10" y1="-12" x2="-10" y2="12" stroke="#10B981" strokeWidth="3" />
+              </g>
             )}
             <text x="-35" y="55" fill="#94A3B8" fontSize="10" fontFamily="monospace" fontWeight="bold">
               ACS712 Motor
             </text>
-            <text x="-35" y="68" fill={isHighCurr ? '#F87171' : '#38BDF8'} fontSize="11" fontFamily="monospace" fontWeight="bold">
+            <text x="-35" y="68" fill={isHighCurr ? '#F87171' : '#10B981'} fontSize="11" fontFamily="monospace" fontWeight="bold">
               {motorCurrent} A
             </text>
           </g>
 
           {/* Drive Pulley (Left Roller) */}
           <circle cx="160" cy="160" r="45" fill="url(#metalGrad)" stroke="#64748B" strokeWidth="3" />
-          <circle cx="160" cy="160" r="12" fill="#0B0F17" stroke="#06B6D4" strokeWidth="2" />
+          <circle cx="160" cy="160" r="12" fill="#0B0F17" stroke="#10B981" strokeWidth="2" />
 
           {/* MPU6050 Vibration Sensor Node (Drive Bearing) */}
           <g transform="translate(160, 100)">
@@ -164,10 +158,10 @@ export const ConveyorGraphic: React.FC = () => {
               height="24"
               rx="4"
               fill={isLeftMisaligned ? '#7F1D1D' : '#1E293B'}
-              stroke={isLeftMisaligned ? '#EF4444' : '#3B82F6'}
+              stroke={isLeftMisaligned ? '#EF4444' : '#475569'}
               strokeWidth="2"
             />
-            <text x="-20" y="2" fill={isLeftMisaligned ? '#F87171' : '#60A5FA'} fontSize="10" fontFamily="monospace" fontWeight="bold">
+            <text x="-20" y="2" fill={isLeftMisaligned ? '#F87171' : '#94A3B8'} fontSize="10" fontFamily="monospace" fontWeight="bold">
               IR-L {isLeftMisaligned ? 'TRIGGER' : 'CLEAR'}
             </text>
           </g>
@@ -181,17 +175,17 @@ export const ConveyorGraphic: React.FC = () => {
               height="24"
               rx="4"
               fill={isRightMisaligned ? '#7F1D1D' : '#1E293B'}
-              stroke={isRightMisaligned ? '#EF4444' : '#3B82F6'}
+              stroke={isRightMisaligned ? '#EF4444' : '#475569'}
               strokeWidth="2"
             />
-            <text x="-20" y="2" fill={isRightMisaligned ? '#F87171' : '#60A5FA'} fontSize="10" fontFamily="monospace" fontWeight="bold">
+            <text x="-20" y="2" fill={isRightMisaligned ? '#F87171' : '#94A3B8'} fontSize="10" fontFamily="monospace" fontWeight="bold">
               IR-R {isRightMisaligned ? 'TRIGGER' : 'CLEAR'}
             </text>
           </g>
 
-          {/* Conveyor Belt Path (Upper & Lower Strands) */}
+          {/* Conveyor Belt Path (Upper & Lower Strands) — drifts vertically on misalignment */}
           <g transform={`translate(0, ${beltYOffset})`} className="transition-transform duration-300">
-            {/* Top Carrying Belt Strand */}
+            {/* Top Carrying Belt Strand — base */}
             <rect
               x="160"
               y="112"
@@ -203,6 +197,20 @@ export const ConveyorGraphic: React.FC = () => {
               strokeWidth="2"
             />
 
+            {/* Top Belt Surface Texture Line — 1D line animation prevents dash corner glitching */}
+            <line
+              x1="164"
+              y1="120"
+              x2="736"
+              y2="120"
+              stroke="#475569"
+              strokeWidth="4"
+              strokeDasharray="14 10"
+              style={{
+                animation: isRunning ? 'beltLineMove 0.4s linear infinite' : 'none'
+              }}
+            />
+
             {/* Belt Splice / Joint Section Callout */}
             <g transform="translate(360, 112)">
               <rect x="0" y="0" width="12" height="16" fill="#F59E0B" opacity="0.8" />
@@ -210,19 +218,6 @@ export const ConveyorGraphic: React.FC = () => {
                 Belt Joint / Splice
               </text>
             </g>
-
-            {/* Animated Dashed Motion Overlay */}
-            {isRunning && (
-              <line
-                x1="160"
-                y1="120"
-                x2="740"
-                y2="120"
-                stroke="#06B6D4"
-                strokeWidth="4"
-                className="animate-belt"
-              />
-            )}
 
             {/* Bottom Return Belt Strand */}
             <rect
@@ -235,24 +230,27 @@ export const ConveyorGraphic: React.FC = () => {
               stroke="#334155"
               strokeWidth="1.5"
             />
-            {isRunning && (
-              <line
-                x1="740"
-                y1="198"
-                x2="160"
-                y2="198"
-                stroke="#0284C7"
-                strokeWidth="3"
-                className="animate-belt"
-              />
-            )}
+
+            {/* Bottom Return Belt Texture Line */}
+            <line
+              x1="164"
+              y1="198"
+              x2="736"
+              y2="198"
+              stroke="#1E293B"
+              strokeWidth="3"
+              strokeDasharray="14 10"
+              style={{
+                animation: isRunning ? 'beltLineMove 0.6s linear infinite reverse' : 'none'
+              }}
+            />
           </g>
 
-          {/* Direction Indicator Arrows */}
+          {/* Running status indicator — small green circle badge */}
           {isRunning && (
-            <g transform="translate(450, 120)">
-              <polygon points="0,-6 14,0 0,6" fill="#22D3EE" />
-              <polygon points="40,-6 54,0 40,6" fill="#22D3EE" />
+            <g>
+              <circle cx="450" cy="155" r="16" fill="#022c22" stroke="#10B981" strokeWidth="1.5" opacity="0.9" />
+              <text x="450" y="160" textAnchor="middle" fill="#34D399" fontSize="14" fontFamily="monospace" fontWeight="bold">▶</text>
             </g>
           )}
         </svg>
@@ -273,8 +271,8 @@ export const ConveyorGraphic: React.FC = () => {
           <span className="text-gray-300">IR Left/Right: Alignment</span>
         </div>
         <div className="flex items-center space-x-2">
-          <span className="w-3 h-3 rounded-full bg-cyan-400" />
-          <span className="text-gray-300">Camera: Future Crack/Tear</span>
+          <span className="w-3 h-3 rounded-full bg-emerald-400" />
+          <span className="text-gray-300">Camera: Crack/Tear AI</span>
         </div>
       </div>
     </div>
