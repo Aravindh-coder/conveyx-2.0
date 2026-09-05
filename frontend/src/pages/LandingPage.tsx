@@ -518,47 +518,47 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ── FEATURES ── */}
-      <section className="relative z-10 max-w-7xl mx-auto px-5 sm:px-8 py-16 border-t border-white/[0.05]">
+      <section className="relative z-10 max-w-7xl mx-auto px-5 sm:px-8 py-16 border-t border-white/[0.1]">
         <div className="text-center mb-10">
-          <div className="section-label mb-2">Platform Capabilities</div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            End-to-End Industrial Intelligence
+          <div className="text-xs font-extrabold uppercase tracking-[0.15em] text-cyan-400 mb-2">Platform Capabilities</div>
+          <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <span style={{ color: '#FFFFFF' }}>End-to-End</span> <span className="text-gradient-multi">Industrial Intelligence</span>
           </h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {FEATURES.map(({ icon: Icon, color, title, desc }) => (
-            <div key={title} className="glass-card glass-card-hover p-5 rounded-2xl">
+            <div key={title} className="p-5 rounded-2xl bg-[#121B2C]/90 border border-white/15 backdrop-blur-xl shadow-xl transition-all hover:border-cyan-400/50">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
-                style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
+                style={{ background: `${color}25`, border: `1px solid ${color}50` }}>
                 <Icon className="w-5 h-5" style={{ color }} />
               </div>
-              <h3 className="text-[14px] font-bold text-white mb-1.5">{title}</h3>
-              <p className="text-[12.5px] text-slate-500 leading-relaxed">{desc}</p>
+              <h3 className="text-[14px] font-extrabold mb-1.5" style={{ color: '#FFFFFF' }}>{title}</h3>
+              <p className="text-[12.5px] font-medium leading-relaxed" style={{ color: '#CBD5E1' }}>{desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ── HARDWARE SPECS ── */}
-      <section className="relative z-10 max-w-7xl mx-auto px-5 sm:px-8 py-16 border-t border-white/[0.05]">
+      <section className="relative z-10 max-w-7xl mx-auto px-5 sm:px-8 py-16 border-t border-white/[0.1]">
         <div className="text-center mb-10">
-          <div className="section-label mb-2">SmartPod Edge Node</div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Raspberry Pi 3B+ Sensor Array
+          <div className="text-xs font-extrabold uppercase tracking-[0.15em] text-amber-400 mb-2">SmartPod Edge Node</div>
+          <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <span style={{ color: '#FFFFFF' }}>Raspberry Pi 3B+</span> <span className="text-emerald-400">Sensor Array</span>
           </h2>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {SENSORS.map(({ icon: Icon, color, name, sub }) => (
-            <div key={name} className="glass-card p-5 rounded-2xl flex items-start gap-4">
+            <div key={name} className="p-5 rounded-2xl bg-[#121B2C]/90 border border-white/15 backdrop-blur-xl shadow-xl flex items-start gap-4 transition-all hover:border-amber-400/50">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: `${color}15`, border: `1px solid ${color}25` }}>
+                style={{ background: `${color}25`, border: `1px solid ${color}50` }}>
                 <Icon className="w-5 h-5" style={{ color }} />
               </div>
               <div>
-                <div className="text-[13.5px] font-bold text-white mb-0.5">{name}</div>
-                <div className="text-[12px] text-slate-500">{sub}</div>
+                <div className="text-[13.5px] font-extrabold mb-0.5" style={{ color: '#FFFFFF' }}>{name}</div>
+                <div className="text-[12px] font-medium" style={{ color: '#CBD5E1' }}>{sub}</div>
               </div>
             </div>
           ))}
@@ -566,20 +566,20 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer className="relative z-10 border-t border-white/[0.05] py-8 px-5 sm:px-8">
+      <footer className="relative z-10 border-t border-white/[0.1] py-8 px-5 sm:px-8 bg-black/40">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center"
               style={{ background: 'linear-gradient(135deg, #06B6D4, #2563EB)' }}>
               <ShieldAlert className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="text-[13px] font-bold text-slate-400" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <span className="text-[13px] font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif", color: '#FFFFFF' }}>
               ConveyX 2.0
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-[12px] text-slate-600">
-            <Globe className="w-3.5 h-3.5" />
-            Enterprise Industrial Conveyor Safety & Predictive Maintenance Platform
+          <div className="flex items-center gap-1.5 text-[12px] font-semibold text-emerald-400">
+            <Globe className="w-3.5 h-3.5 text-emerald-400" />
+            <span style={{ color: '#CBD5E1' }}>Enterprise Industrial Conveyor Safety & Predictive Maintenance Platform</span>
           </div>
         </div>
       </footer>
